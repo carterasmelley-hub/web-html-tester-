@@ -898,8 +898,9 @@ function lerp(a, b, t){ return a + (b - a) * t; }
     if (b.w <= 190 || label.length > 10) fontPx = 16;
     if (b.w <= 150 || label.length > 12) fontPx = 14;
     if (b.w <= 120 || label.length > 14) fontPx = 12;
+    if (b.w <= 96 || label.length > 16) fontPx = 10;
     if (isPhoneViewport()){
-      fontPx = Math.min(fontPx, label.length > 10 ? 12 : 14);
+      fontPx = Math.min(fontPx, label.length > 10 ? 11 : 13);
     }
     ctx.font = `600 ${fontPx}px ui-monospace, Menlo, Consolas, monospace`;
     ctx.textAlign = "center";
@@ -1704,7 +1705,7 @@ function lerp(a, b, t){ return a + (b - a) * t; }
     const phoneLandscape = isPhoneLandscapeViewport();
     const portraitCompact = compact && !phoneLandscape;
     const scaleByW = (W - (portraitCompact ? 44 : compact ? 28 : 72)) / 820;
-    const hudReserve = phoneLandscape ? 172 : compact ? 118 : isMobileCompactLayout() ? 170 : 230;
+    const hudReserve = phoneLandscape ? 172 : portraitCompact ? 148 : compact ? 118 : isMobileCompactLayout() ? 170 : 230;
     const scaleByH = (H - hudReserve) / 520; // leave room for HUD + buttons
     return clamp(Math.min(scaleByMin, scaleByW, scaleByH), phoneLandscape ? 0.42 : portraitCompact ? 0.40 : compact ? 0.48 : isMobileCompactLayout() ? 0.52 : 0.58, 1.2);
   }
@@ -1720,10 +1721,10 @@ function lerp(a, b, t){ return a + (b - a) * t; }
 
     if (fieldMode){
       // Wide field-sport arena (east-west).
-      plat.w = Math.floor(clamp(W * (phoneLandscape ? 0.97 : portraitCompact ? 0.84 : compact ? 0.96 : 0.92), portraitCompact ? 260 : compact ? 420 : 520, W - (portraitCompact ? 34 : compact ? 18 : 44)));
-      plat.h = Math.floor(clamp(H * (phoneLandscape ? 0.36 : portraitCompact ? 0.28 : compact ? 0.42 : 0.46), portraitCompact ? 130 : compact ? 180 : 230, Math.min(portraitCompact ? 210 : phoneLandscape ? 250 : compact ? 330 : 430, H - (portraitCompact ? 210 : phoneLandscape ? 110 : compact ? 120 : 210))));
+      plat.w = Math.floor(clamp(W * (phoneLandscape ? 0.97 : portraitCompact ? 0.78 : compact ? 0.96 : 0.92), portraitCompact ? 240 : compact ? 420 : 520, W - (portraitCompact ? 48 : compact ? 18 : 44)));
+      plat.h = Math.floor(clamp(H * (phoneLandscape ? 0.36 : portraitCompact ? 0.22 : compact ? 0.42 : 0.46), portraitCompact ? 110 : compact ? 180 : 230, Math.min(portraitCompact ? 170 : phoneLandscape ? 250 : compact ? 330 : 430, H - (portraitCompact ? 240 : phoneLandscape ? 110 : compact ? 120 : 210))));
       plat.x = Math.floor(W/2 - plat.w/2);
-      plat.y = Math.floor(H/2 - plat.h/2 + (phoneLandscape ? 2 : portraitCompact ? 44 : compact ? 10 : 26));
+      plat.y = Math.floor(H/2 - plat.h/2 + (phoneLandscape ? 2 : portraitCompact ? 72 : compact ? 10 : 26));
       plat.cx = plat.x + plat.w/2;
       plat.cy = plat.y + plat.h/2;
       plat.radius = 0;
@@ -4623,16 +4624,16 @@ function lerp(a, b, t){ return a + (b - a) * t; }
     const phonePortrait = isPhoneViewport() && !phoneLandscape;
     const compact = isShortViewport() || isPhoneViewport();
     const bw = Math.min(
-      phoneLandscape ? 250 : phonePortrait ? 296 : compact ? 320 : 360,
-      Math.floor(W * (phoneLandscape ? 0.42 : phonePortrait ? 0.72 : compact ? 0.56 : 0.50))
+      phoneLandscape ? 250 : phonePortrait ? 272 : compact ? 320 : 360,
+      Math.floor(W * (phoneLandscape ? 0.42 : phonePortrait ? 0.66 : compact ? 0.56 : 0.50))
     );
-    const bh = phoneLandscape ? 34 : phonePortrait ? 42 : compact ? 46 : 54;
+    const bh = phoneLandscape ? 34 : phonePortrait ? 38 : compact ? 46 : 54;
     const x = Math.floor(W/2 - bw/2);
-    let y = Math.floor(H * (phoneLandscape ? 0.25 : phonePortrait ? 0.33 : compact ? 0.40 : 0.48));
+    let y = Math.floor(H * (phoneLandscape ? 0.25 : phonePortrait ? 0.27 : compact ? 0.40 : 0.48));
     const quickW = Math.floor(bw * (phoneLandscape ? 1.00 : 1.10));
     const quickH = Math.floor(bh * (phoneLandscape ? 1.00 : 1.10));
     const quickX = Math.floor(W/2 - quickW/2);
-    const rowGap = phoneLandscape ? 42 : phonePortrait ? 50 : compact ? 58 : 70;
+    const rowGap = phoneLandscape ? 42 : phonePortrait ? 44 : compact ? 58 : 70;
 
     addButton("quick", quickX, y, quickW, quickH, "START", () => {
       startNewGame({ players:1, mode:"KNOCKOUT", difficulty:"NORMAL", stage:"CLASSIC", series:"BO3", speed:"1X", modifier:"STANDARD" });
@@ -4658,14 +4659,14 @@ function lerp(a, b, t){ return a + (b - a) * t; }
       const phoneViewport = isPhoneViewport();
       const narrow = W <= 430;
       const panelW = Math.min(760, Math.floor(W * (narrow ? 0.96 : 0.92)));
-      const panelH = clamp(Math.floor(H - (phoneLandscape ? 38 : narrow ? 28 : phoneViewport ? 78 : 150)), phoneLandscape ? 320 : narrow ? 420 : 470, Math.max(phoneLandscape ? 320 : narrow ? 420 : 470, H - (phoneLandscape ? 20 : 84)));
+      const panelH = clamp(Math.floor(H - (phoneLandscape ? 38 : narrow ? 18 : phoneViewport ? 78 : 150)), phoneLandscape ? 320 : narrow ? 350 : 470, Math.max(phoneLandscape ? 320 : narrow ? 350 : 470, H - (phoneLandscape ? 20 : 34)));
       const px = Math.floor(W/2 - panelW/2);
       const py = Math.floor(phoneViewport
-        ? clamp(phoneLandscape ? 14 : 28, 12, Math.max(12, H - panelH - 16))
+        ? clamp(phoneLandscape ? 14 : 18, 10, Math.max(10, H - panelH - 10))
         : clamp(H * 0.17, 84, Math.max(84, H - panelH - 36)));
-      const pad = 18;
+      const pad = narrow ? 14 : 18;
       const headerH = phoneViewport ? 12 : 34;
-      const footerH = phoneLandscape ? 72 : narrow ? 74 : 88;
+      const footerH = phoneLandscape ? 72 : narrow ? 62 : 88;
       const viewX = px + pad;
       const viewY = py + headerH;
       const viewW = panelW - pad*2 - 8;
@@ -4948,25 +4949,26 @@ function lerp(a, b, t){ return a + (b - a) * t; }
 
 function buildPauseUI(){
     ui.pauseButtons = [];
-    const panelW = Math.min(560, Math.floor(W * 0.78));
-    const panelH = 412;
-    const bw = Math.min(360, Math.floor(panelW * 0.70));
-    const bh = 52;
+    const compact = isPhoneViewport() || isShortViewport();
+    const panelW = Math.min(560, Math.floor(W * (compact ? 0.88 : 0.78)));
+    const panelH = compact ? 320 : 412;
+    const bw = Math.min(compact ? 300 : 360, Math.floor(panelW * (compact ? 0.74 : 0.70)));
+    const bh = compact ? 42 : 52;
     const x = Math.floor(W/2 - bw/2);
     const py = Math.floor(H/2 - panelH/2);
-    let y = py + 120;
+    let y = py + (compact ? 88 : 120);
 
     const add = (id, yy, label, onClick) =>
       ui.pauseButtons.push({ id, x, y: yy, w: bw, h: bh, label, onClick, enabled: true });
 
-    add("pause_resume", y, "RESUME", () => resumeGame()); y += 62;
+    add("pause_resume", y, "RESUME", () => resumeGame()); y += compact ? 50 : 62;
     add("pause_restart_round", y, "RESTART ROUND", () => {
       if (state !== State.PAUSE) return;
       resetMatch();
       beep(360, 0.05, "square", 0.035);
       resumeGame();
-    }); y += 62;
-    add("pause_settings", y, "SETTINGS", () => { settingsBackState = State.PAUSE; helpBackState = null; state = State.SETTINGS; ui.buttons = []; buildSettingsUI(); }); y += 62;
+    }); y += compact ? 50 : 62;
+    add("pause_settings", y, "SETTINGS", () => { settingsBackState = State.PAUSE; helpBackState = null; state = State.SETTINGS; ui.buttons = []; buildSettingsUI(); }); y += compact ? 50 : 62;
     add("pause_menu", y, "MAIN MENU", () => { paused = false; settingsBackState = null; helpBackState = null; ui.pauseButtons = []; goTo(State.MENU); });
   }
 
@@ -6063,7 +6065,7 @@ for (let i = 0; i < all.length; i++){
     const bw = Math.floor(clamp(p.w * (phoneLandscape ? 0.64 : portraitCompact ? 0.82 : compact ? 0.70 : 0.62), portraitCompact ? 240 : compact ? 280 : 340, portraitCompact ? Math.min(W - 24, 420) : compact ? 520 : 620));
     const bh = phoneLandscape ? 36 : compact ? 42 : 48;
     const bx = Math.floor(W/2 - bw/2);
-    const by = Math.floor(portraitCompact ? 14 : Math.max(phoneLandscape ? 30 : compact ? 48 : 66, p.y - bh - (phoneLandscape ? 8 : compact ? 12 : 20)));
+    const by = Math.floor(portraitCompact ? 6 : Math.max(phoneLandscape ? 30 : compact ? 48 : 66, p.y - bh - (phoneLandscape ? 8 : compact ? 12 : 20)));
     const lx = Math.floor(bx + bw * 0.22);
     const rx = Math.floor(bx + bw * 0.78);
     const cx = Math.floor(bx + bw * 0.50);
@@ -6563,7 +6565,7 @@ function drawTargetMarker(tx, ty, color, alpha=1, dirX=1, dirY=0){
 
     const narrow = W <= 430;
     const pw = Math.min(compact ? 760 : 760, Math.floor(W * (narrow ? 0.94 : compact ? 0.92 : 0.90)));
-    const ph = clamp(Math.floor(H * (narrow ? 0.68 : compact ? 0.62 : 0.56)), narrow ? 340 : compact ? 360 : 330, narrow ? 500 : compact ? 520 : 460);
+    const ph = clamp(Math.floor(H * (narrow ? 0.58 : compact ? 0.62 : 0.56)), narrow ? 290 : compact ? 360 : 330, narrow ? 420 : compact ? 520 : 460);
     const px = Math.floor(W/2 - pw/2);
     const py = Math.floor(clamp(H/2 - ph/2, 16, Math.max(16, H - ph - 16)));
     const innerPad = narrow ? 18 : compact ? 22 : 34;
@@ -6572,12 +6574,12 @@ function drawTargetMarker(tx, ty, color, alpha=1, dirX=1, dirY=0){
     const titleFont = narrow ? 22 : compact ? 27 : 32;
     const subtitleFont = narrow ? 12 : compact ? 13 : 15;
     const bodyFont = narrow ? 11 : compact ? 12 : 14;
-    const titleY = py + (narrow ? 38 : compact ? 46 : 52);
-    const subtitleY = py + (narrow ? 66 : compact ? 78 : 84);
-    const tipsTop = py + (narrow ? 96 : compact ? 112 : 126);
-    const lineHeight = narrow ? 17 : compact ? 20 : 22;
-    const tipGap = narrow ? 6 : compact ? 9 : 12;
-    const ctaY = py + ph - (narrow ? 24 : compact ? 28 : 34);
+    const titleY = py + (narrow ? 30 : compact ? 46 : 52);
+    const subtitleY = py + (narrow ? 54 : compact ? 78 : 84);
+    const tipsTop = py + (narrow ? 78 : compact ? 112 : 126);
+    const lineHeight = narrow ? 15 : compact ? 20 : 22;
+    const tipGap = narrow ? 4 : compact ? 9 : 12;
+    const ctaY = py + ph - (narrow ? 18 : compact ? 28 : 34);
     drawPanel(px, py, pw, ph);
 
     ctx.textAlign = "center";
@@ -7162,8 +7164,9 @@ function drawTargetMarker(tx, ty, color, alpha=1, dirX=1, dirY=0){
     ctx.restore();
 
     // bordered pause panel
-    const panelW = Math.min(560, Math.floor(W * 0.78));
-    const panelH = 412;
+    const compact = isPhoneViewport() || isShortViewport();
+    const panelW = Math.min(560, Math.floor(W * (compact ? 0.88 : 0.78)));
+    const panelH = compact ? 320 : 412;
     const px = Math.floor(W/2 - panelW/2);
     const py = Math.floor(H/2 - panelH/2);
 
@@ -7172,11 +7175,11 @@ function drawTargetMarker(tx, ty, color, alpha=1, dirX=1, dirY=0){
     ctx.save();
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.font = "800 44px ui-monospace, Menlo, Consolas, monospace";
+    ctx.font = compact ? "800 30px ui-monospace, Menlo, Consolas, monospace" : "800 44px ui-monospace, Menlo, Consolas, monospace";
     ctx.fillStyle = COL_NEON;
     ctx.shadowColor = "rgba(0,228,102,0.75)";
     ctx.shadowBlur = 18;
-    ctx.fillText("PAUSED", W/2, py + 64);
+    ctx.fillText("PAUSED", W/2, py + (compact ? 46 : 64));
     ctx.restore();
 
     if (!ui.buttons || ui.buttons.length === 0) buildPauseUI();
