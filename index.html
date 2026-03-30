@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0c1628">
+  <title>Arcade Test Box</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="arcade-home">
+  <div class="page-shell">
+    <header class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Local Arcade Preview</p>
+        <h1>Test your games in a boxed web portal before you publish them.</h1>
+        <p class="hero-text">
+          This works both from your computer and from GitHub Pages. Click a game card and you'll get
+          a small embedded player with fullscreen plus a full-view fallback on the next screen.
+        </p>
+        <div class="hero-pills">
+          <span>no hosting needed</span>
+          <span>local game folders</span>
+          <span>github pages ready</span>
+        </div>
+      </div>
+      <aside class="hero-panel">
+        <p class="panel-label">Setup</p>
+        <ol class="setup-list">
+          <li>Put each HTML game in its own folder inside <code>games/</code>.</li>
+          <li>Add one entry to <code>games/catalog.js</code>.</li>
+          <li>Open <code>index.html</code> locally or publish this folder to GitHub Pages.</li>
+        </ol>
+      </aside>
+    </header>
+
+    <section class="section-heading">
+      <div>
+        <p class="eyebrow">Game Shelf</p>
+        <h2>Available games</h2>
+      </div>
+      <p id="game-count" class="section-note">Loading catalog...</p>
+    </section>
+
+    <main id="game-grid" class="game-grid" aria-live="polite"></main>
+  </div>
+
+  <script src="games/catalog.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

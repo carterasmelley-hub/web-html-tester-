@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0c1628">
+  <title>Arcade Player</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="arcade-player">
+  <div class="player-page-shell">
+    <header class="player-topbar">
+      <a class="back-link" href="index.html">Back to arcade</a>
+      <div class="player-topbar-copy">
+        <p class="eyebrow">Boxed Player Test</p>
+        <h1 id="player-title">Loading game...</h1>
+      </div>
+      <div class="topbar-status" id="frame-status">Preparing local preview</div>
+    </header>
+
+    <main class="player-layout">
+      <section class="player-stage-panel">
+        <div class="stage-toolbar">
+          <div>
+            <p class="toolbar-label">Game Window</p>
+            <h2 id="stage-heading">Embedded preview</h2>
+          </div>
+          <div class="stage-actions">
+            <a id="open-full-view" class="action-button" href="#">Open full view</a>
+            <a id="open-direct" class="action-button secondary" href="#" target="_blank" rel="noreferrer">Open direct</a>
+            <button id="fullscreen-button" class="action-button" type="button">Fullscreen</button>
+          </div>
+        </div>
+
+        <div id="player-shell" class="player-shell">
+          <div class="focus-banner" id="focus-banner">
+            Click inside the game box if you need keyboard or mouse focus.
+          </div>
+          <iframe
+            id="game-frame"
+            class="game-frame"
+            title="Embedded game preview"
+            allow="autoplay; fullscreen; gamepad"
+            allowfullscreen
+            loading="eager"
+            referrerpolicy="no-referrer"
+            tabindex="0"
+          ></iframe>
+        </div>
+      </section>
+
+      <aside class="player-sidebar">
+        <section class="sidebar-card">
+          <p class="panel-label">About</p>
+          <h2 id="sidebar-title">Loading...</h2>
+          <p id="sidebar-description" class="sidebar-copy"></p>
+          <div class="meta-grid">
+            <div>
+              <span class="meta-label">Genre</span>
+              <strong id="meta-genre">-</strong>
+            </div>
+            <div>
+              <span class="meta-label">Players</span>
+              <strong id="meta-players">-</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="sidebar-card">
+          <p class="panel-label">Controls</p>
+          <ul id="controls-list" class="controls-list"></ul>
+        </section>
+
+        <section class="sidebar-card">
+          <p class="panel-label">Tips</p>
+          <ul id="tips-list" class="controls-list">
+            <li>Use the normal boxed mode first to see how the game feels on a portal.</li>
+            <li>Use fullscreen to check edge cases like scaling and input focus.</li>
+            <li>If a game ever resists the iframe, use the direct-open button for a quick fallback.</li>
+          </ul>
+        </section>
+
+        <section class="sidebar-card">
+          <p class="panel-label">More Games</p>
+          <div id="more-games" class="mini-list"></div>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <script src="games/catalog.js"></script>
+  <script src="play.js"></script>
+</body>
+</html>
