@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover" />
   <title>Neon Knockout</title>
   <link rel="icon" href="data:,">
   <style>
@@ -12,27 +12,19 @@
       background: #050505;
       overflow: hidden;
       height: 100%;
-      overscroll-behavior: none;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       color: #b7ffd0;
       user-select: none;
-      -webkit-user-select: none;
-      -webkit-touch-callout: none;
-      -webkit-tap-highlight-color: transparent;
-    }
-    body {
-      position: fixed;
-      inset: 0;
     }
     canvas {
       display: block;
       width: 100vw;
       height: 100vh;
-      image-rendering: pixelated;
+      width: 100dvw;
+      height: 100dvh;
+      image-rendering: auto;
       cursor: crosshair;
       touch-action: none;
-      -webkit-user-select: none;
-      -webkit-touch-callout: none;
     }
   </style>
 </head>
@@ -100,25 +92,12 @@
     // Firefox struggles with full-frame blur/filter passes in this game.
     bloomEnabled: !IS_FIREFOX,
     lowFx: IS_FIREFOX,
-    dprCap: IS_FIREFOX ? 1 : 2,
+    dprCap: IS_FIREFOX ? 1 : ((navigator.maxTouchPoints || 0) > 0 ? 3 : 2),
     gridHoriz: IS_FIREFOX ? 20 : 28,
     gridVert: IS_FIREFOX ? 16 : 24
   };
 
   const DPR = Math.min(PERF.dprCap, window.devicePixelRatio || 1);
-  const safeAreaProbe = document.createElement("div");
-  safeAreaProbe.setAttribute("aria-hidden", "true");
-  safeAreaProbe.style.cssText = [
-    "position:fixed",
-    "left:0",
-    "top:0",
-    "visibility:hidden",
-    "pointer-events:none",
-    "z-index:-1",
-    "padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)"
-  ].join(";");
-  document.body.appendChild(safeAreaProbe);
-  const SAFE_AREA = { top: 0, right: 0, bottom: 0, left: 0 };
 
   
   function resolveCircleCircle(a, b){
@@ -383,17 +362,6 @@ function lerp(a, b, t){ return a + (b - a) * t; }
   }
   // Resize
   let W = 0, H = 0;
-  function readPx(v){
-    const n = parseFloat(v || "0");
-    return Number.isFinite(n) ? n : 0;
-  }
-  function updateSafeAreaInsets(){
-    const cs = getComputedStyle(safeAreaProbe);
-    SAFE_AREA.top = readPx(cs.paddingTop);
-    SAFE_AREA.right = readPx(cs.paddingRight);
-    SAFE_AREA.bottom = readPx(cs.paddingBottom);
-    SAFE_AREA.left = readPx(cs.paddingLeft);
-  }
   function hasCoarsePointer(){
     try{
       return !!(navigator.maxTouchPoints > 0 || window.matchMedia?.("(pointer: coarse)")?.matches);
@@ -403,6 +371,9 @@ function lerp(a, b, t){ return a + (b - a) * t; }
   }
   function isPhoneViewport(){
     return hasCoarsePointer() && (Math.min(W, H) <= 560 || (W <= 980 && H <= 560));
+  }
+  function isPhoneLandscapeViewport(){
+    return isPhoneViewport() && W > H;
   }
   function isMobileCompactLayout(){
     return isPhoneViewport();
@@ -414,26 +385,12 @@ function lerp(a, b, t){ return a + (b - a) * t; }
     return isMobileCompactLayout() || isShortViewport();
   }
   function needsLandscapeRotateOverlay(){
-    return isPhoneViewport() && H > W;
-  }
-  function getViewportLayoutMetrics(){
-    const compact = isMobileCompactLayout();
-    const top = SAFE_AREA.top + (compact ? 8 : 0);
-    const right = SAFE_AREA.right + (compact ? 8 : 0);
-    const bottom = SAFE_AREA.bottom + (compact ? 16 : 0);
-    const left = SAFE_AREA.left + (compact ? 8 : 0);
-    const usableW = Math.max(1, W - left - right);
-    const usableH = Math.max(1, H - top - bottom);
-    return {
-      top, right, bottom, left, usableW, usableH,
-      cx: left + usableW * 0.5,
-      cy: top + usableH * 0.5
-    };
+    return false;
   }
   function resize(){
-    W = Math.floor(window.innerWidth);
-    H = Math.floor(window.innerHeight);
-    updateSafeAreaInsets();
+    const vv = window.visualViewport;
+    W = Math.floor(vv?.width || window.innerWidth);
+    H = Math.floor(vv?.height || window.innerHeight);
     canvas.width = Math.floor(W * DPR);
     canvas.height = Math.floor(H * DPR);
     bloomCanvas.width = W;
@@ -479,32 +436,32 @@ function lerp(a, b, t){ return a + (b - a) * t; }
   const ONBOARDING_TUTORIALS = Object.freeze({
     KNOCKOUT: Object.freeze({
       title: "KNOCKOUT",
-      subtitle: "GOAL: Knock all opponents off the arena.",
+      subtitle: "GOAL: Knock every opponent off the map.",
       tips: Object.freeze([
-        "1) Tap a unit, then tap a spot to aim it.",
-        "2) Set all arrows, then press START.",
-        "3) Push opponents out of bounds.",
-        "4) Walls and bumpers can change movement."
+        "1) Tap a unit, then tap where you want it to go.",
+        "2) Aim all your units, then press START.",
+        "3) Bump enemies off the map.",
+        "4) Walls and bumpers can change your path."
       ])
     }),
     FOOTBALL: Object.freeze({
       title: "FOOTBALL",
-      subtitle: "GOAL: Bring the ball to the opponent end zone.",
+      subtitle: "GOAL: Carry the ball to the far end zone.",
       tips: Object.freeze([
-        "1) Move onto the ball to pick it up.",
-        "2) The carrier keeps the ball until knocked off.",
+        "1) Move onto the ball to grab it.",
+        "2) Keep it unless you get knocked off.",
         "3) Reach the far end zone to score.",
-        "4) Use teammates to block defenders."
+        "4) Use your team to block defenders."
       ])
     }),
     KEEP_AWAY: Object.freeze({
       title: "KEEP AWAY",
       subtitle: "GOAL: Hold the ball for 3 turns.",
       tips: Object.freeze([
-        "1) Move onto the ball to pick it up.",
-        "2) Hold the ball for 3 turns to win.",
-        "3) Push opponents away to protect the carrier.",
-        "4) If the carrier falls off, the ball resets to center."
+        "1) Move onto the ball to grab it.",
+        "2) Hold it for 3 turns to win.",
+        "3) Protect the ball carrier.",
+        "4) If the carrier falls off, the ball goes back to the middle."
       ])
     })
   });
@@ -533,11 +490,13 @@ function lerp(a, b, t){ return a + (b - a) * t; }
     settings.sound = settings.soundVolume > 0.001;
     saveSettingsPrefs(settings.soundVolume, settings.musicVolume, settings.devMode);
     if (settings.sound) ensureAudio();
+    refreshAudioLevels();
   }
   function setMusicVolume(value, userGesture=false){
     settings.musicVolume = clamp(value, 0, 1);
     settings.music = settings.musicVolume > 0.001;
     saveSettingsPrefs(settings.soundVolume, settings.musicVolume, settings.devMode);
+    refreshAudioLevels();
     applyMusicState(userGesture);
   }
   function setDevModeEnabled(enabled){
@@ -616,75 +575,89 @@ function lerp(a, b, t){ return a + (b - a) * t; }
   const MUSIC_TRACK_SRC = "arcade-ride-vens-adams-main-version-27955-01-45.mp3";
   let audioCtx = null;
   let bgMusicEl = null;
-  let bgMusicSourceNode = null;
-  let bgMusicGainNode = null;
+  let sfxMasterGain = null;
+  let musicMasterGain = null;
+  let musicSourceNode = null;
   const sfxCooldowns = Object.create(null);
-  function audioFeatureEnabled(){
-    return (settings.sound && settings.soundVolume > 0.001) || (settings.music && settings.musicVolume > 0.001);
+  function sfxVolumeScalar(){
+    const v = clamp(settings.soundVolume, 0, 1);
+    return v <= 0.001 ? 0 : 0.20 + 1.20 * Math.pow(v, 1.08);
   }
-  function soundGainScale(value){
-    const v = clamp(value, 0, 1);
-    return v <= 0.001 ? 0 : Math.pow(v, 1.8);
-  }
-  function musicGainScale(value){
-    const v = clamp(value, 0, 1);
-    return v <= 0.001 ? 0 : Math.pow(v, 1.6);
+  function musicVolumeScalar(){
+    const v = clamp(settings.musicVolume, 0, 1);
+    return v <= 0.001 ? 0 : Math.pow(v, 1.05);
   }
   function ensureAudio(){
-    if (!audioFeatureEnabled()) return null;
+    const wantsSfx = !!(settings.sound && settings.soundVolume > 0.001);
+    const wantsMusic = !!(settings.music && settings.musicVolume > 0.001);
+    if (!wantsSfx && !wantsMusic) return null;
     if (!audioCtx){
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return null;
       audioCtx = new AC();
     }
+    if (!sfxMasterGain){
+      sfxMasterGain = audioCtx.createGain();
+      sfxMasterGain.gain.setValueAtTime(sfxVolumeScalar(), audioCtx.currentTime);
+      sfxMasterGain.connect(audioCtx.destination);
+    }
+    if (!musicMasterGain){
+      musicMasterGain = audioCtx.createGain();
+      musicMasterGain.gain.setValueAtTime(0.72 * musicVolumeScalar(), audioCtx.currentTime);
+      musicMasterGain.connect(audioCtx.destination);
+    }
     if (audioCtx.state === "suspended") audioCtx.resume().catch(()=>{});
     return audioCtx;
+  }
+  function ensureMusicGraph(){
+    const ac = ensureAudio();
+    if (!ac || !bgMusicEl || musicSourceNode) return;
+    try{
+      musicSourceNode = ac.createMediaElementSource(bgMusicEl);
+      musicSourceNode.connect(musicMasterGain || ac.destination);
+      bgMusicEl.volume = 1;
+    } catch (_){
+      musicSourceNode = null;
+      bgMusicEl.volume = 0.72 * musicVolumeScalar();
+    }
+  }
+  function refreshAudioLevels(){
+    if (audioCtx && sfxMasterGain){
+      const t0 = audioCtx.currentTime;
+      sfxMasterGain.gain.cancelScheduledValues(t0);
+      sfxMasterGain.gain.setValueAtTime(sfxMasterGain.gain.value, t0);
+      sfxMasterGain.gain.linearRampToValueAtTime(sfxVolumeScalar(), t0 + 0.04);
+    }
+    if (audioCtx && musicMasterGain){
+      const t0 = audioCtx.currentTime;
+      musicMasterGain.gain.cancelScheduledValues(t0);
+      musicMasterGain.gain.setValueAtTime(musicMasterGain.gain.value, t0);
+      musicMasterGain.gain.linearRampToValueAtTime(0.72 * musicVolumeScalar(), t0 + 0.04);
+    }
+    if (bgMusicEl){
+      bgMusicEl.volume = musicSourceNode ? 1 : 0.72 * musicVolumeScalar();
+    }
   }
   function ensureMusicEl(){
     if (bgMusicEl) return bgMusicEl;
     try{
       const a = new Audio(MUSIC_TRACK_SRC);
       a.loop = true;
-      a.volume = 1;
+      a.volume = 0.72 * musicVolumeScalar();
       a.preload = "auto";
-      a.playsInline = true;
       bgMusicEl = a;
+      ensureMusicGraph();
     } catch (_){
       bgMusicEl = null;
     }
     return bgMusicEl;
   }
-  function ensureMusicRouting(){
-    const ac = ensureAudio();
-    const m = ensureMusicEl();
-    if (!ac || !m) return null;
-    if (!bgMusicGainNode){
-      bgMusicGainNode = ac.createGain();
-      bgMusicGainNode.gain.setValueAtTime(0, ac.currentTime);
-      bgMusicGainNode.connect(ac.destination);
-    }
-    if (!bgMusicSourceNode){
-      try{
-        bgMusicSourceNode = ac.createMediaElementSource(m);
-        bgMusicSourceNode.connect(bgMusicGainNode);
-      } catch (_){
-        bgMusicSourceNode = null;
-      }
-    }
-    return bgMusicGainNode;
-  }
   function applyMusicState(userGesture=false){
+    if (settings.music && settings.musicVolume > 0.001) ensureAudio();
     const m = ensureMusicEl();
     if (!m) return;
-    const ac = ensureAudio();
-    const gainNode = ensureMusicRouting();
-    if (gainNode && ac){
-      gainNode.gain.cancelScheduledValues(ac.currentTime);
-      gainNode.gain.setValueAtTime(0.34 * musicGainScale(settings.musicVolume), ac.currentTime);
-      m.volume = 1;
-    } else {
-      m.volume = 0.34 * musicGainScale(settings.musicVolume);
-    }
+    ensureMusicGraph();
+    refreshAudioLevels();
     if (!settings.music || settings.musicVolume <= 0.001 || document.hidden){
       m.pause();
       return;
@@ -708,10 +681,10 @@ function lerp(a, b, t){ return a + (b - a) * t; }
     o.type = type;
     o.frequency.setValueAtTime(freq, t0);
     g.gain.setValueAtTime(0, t0);
-    g.gain.linearRampToValueAtTime(gain * soundGainScale(settings.soundVolume), t0 + 0.005);
+    g.gain.linearRampToValueAtTime(gain, t0 + 0.005);
     g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
     o.connect(g);
-    g.connect(ac.destination);
+    g.connect(sfxMasterGain || ac.destination);
     o.start(t0);
     o.stop(t0 + dur + 0.02);
   }
@@ -726,10 +699,10 @@ function lerp(a, b, t){ return a + (b - a) * t; }
     o.frequency.setValueAtTime(freq, t0);
     if (endFreq != null) o.frequency.exponentialRampToValueAtTime(Math.max(24, endFreq), t0 + dur);
     g.gain.setValueAtTime(0.0001, t0);
-    g.gain.exponentialRampToValueAtTime(Math.max(0.0001, gain * soundGainScale(settings.soundVolume)), t0 + 0.01);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0001, gain), t0 + 0.01);
     g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
     o.connect(g);
-    g.connect(ac.destination);
+    g.connect(sfxMasterGain || ac.destination);
     o.start(t0);
     o.stop(t0 + dur + 0.03);
   }
@@ -752,12 +725,12 @@ function lerp(a, b, t){ return a + (b - a) * t; }
     lpNode.frequency.setValueAtTime(lp, t0);
     const g = ac.createGain();
     g.gain.setValueAtTime(0.0001, t0);
-    g.gain.exponentialRampToValueAtTime(Math.max(0.0001, gain * soundGainScale(settings.soundVolume)), t0 + 0.008);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0001, gain), t0 + 0.008);
     g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
     src.connect(hpNode);
     hpNode.connect(lpNode);
     lpNode.connect(g);
-    g.connect(ac.destination);
+    g.connect(sfxMasterGain || ac.destination);
     src.start(t0);
     src.stop(t0 + dur + 0.02);
   }
@@ -765,47 +738,47 @@ function lerp(a, b, t){ return a + (b - a) * t; }
   function impactSound(strength){
     if (!canPlaySfx("impact", 0.045)) return;
     const f = clamp(220 + strength * 260, 200, 700);
-    beep(f, 0.05, "sawtooth", clamp(0.02 + strength * 0.06, 0.02, 0.09));
+    beep(f, 0.05, "sawtooth", clamp(0.028 + strength * 0.072, 0.028, 0.11));
   }
   function heavyKnockoutSmash(strength=1){
     if (!canPlaySfx("smash", 0.12)) return;
     const s = clamp(strength, 0, 1);
-    tone(180 + 60 * s, 0.11, "sawtooth", 0.06 + 0.03 * s, 0, 72 + 22 * s);
-    tone(420 + 120 * s, 0.075, "square", 0.018 + 0.012 * s, 0.012, 180 + 60 * s);
-    noiseBurst(0.07, 0.018 + 0.012 * s, 0.002, 420, 3800);
+    tone(180 + 60 * s, 0.11, "sawtooth", 0.078 + 0.042 * s, 0, 72 + 22 * s);
+    tone(420 + 120 * s, 0.075, "square", 0.026 + 0.016 * s, 0.012, 180 + 60 * s);
+    noiseBurst(0.07, 0.028 + 0.016 * s, 0.002, 420, 3800);
   }
   function fallOutSound(count=1){
     if (!canPlaySfx("fallout", 0.06)) return;
     const s = clamp((count - 1) * 0.18, 0, 0.35);
-    tone(260, 0.14, "triangle", 0.04 + s * 0.03, 0, 70);
-    noiseBurst(0.09, 0.015 + s * 0.01, 0.018, 1800, 7200);
+    tone(260, 0.14, "triangle", 0.052 + s * 0.036, 0, 70);
+    noiseBurst(0.09, 0.024 + s * 0.012, 0.018, 1800, 7200);
   }
   function ballPickupSound(stolen=false){
     if (!canPlaySfx(stolen ? "ball_steal" : "ball_pickup", 0.05)) return;
     if (stolen){
-      tone(420, 0.045, "square", 0.03, 0, 620);
-      tone(640, 0.05, "triangle", 0.024, 0.03, 820);
+      tone(420, 0.045, "square", 0.04, 0, 620);
+      tone(640, 0.05, "triangle", 0.03, 0.03, 820);
     } else {
-      tone(760, 0.045, "triangle", 0.028, 0, 980);
-      tone(980, 0.05, "sine", 0.02, 0.026, 1220);
+      tone(760, 0.045, "triangle", 0.036, 0, 980);
+      tone(980, 0.05, "sine", 0.026, 0.026, 1220);
     }
   }
   function footballScoreSound(){
     if (!canPlaySfx("football_score", 0.2)) return;
-    tone(360, 0.08, "square", 0.035, 0, 520);
-    tone(540, 0.09, "square", 0.04, 0.07, 760);
-    tone(810, 0.16, "triangle", 0.045, 0.15, 1120);
+    tone(360, 0.08, "square", 0.046, 0, 520);
+    tone(540, 0.09, "square", 0.052, 0.07, 760);
+    tone(810, 0.16, "triangle", 0.058, 0.15, 1120);
   }
   function doorToggleSound(){
     if (!canPlaySfx("door_toggle", 0.08)) return;
-    tone(190, 0.06, "sawtooth", 0.028, 0, 130);
-    tone(260, 0.09, "square", 0.016, 0.025, 210);
+    tone(190, 0.06, "sawtooth", 0.036, 0, 130);
+    tone(260, 0.09, "square", 0.022, 0.025, 210);
   }
   function bumperHitSound(strength=1){
     if (!canPlaySfx("bumper", 0.05)) return;
     const s = clamp(strength, 0, 1);
-    tone(540 + 120 * s, 0.045, "square", 0.024 + 0.012 * s, 0, 860 + 140 * s);
-    tone(820 + 160 * s, 0.05, "triangle", 0.018 + 0.008 * s, 0.018, 1180 + 180 * s);
+    tone(540 + 120 * s, 0.045, "square", 0.034 + 0.016 * s, 0, 860 + 140 * s);
+    tone(820 + 160 * s, 0.05, "triangle", 0.024 + 0.010 * s, 0.018, 1180 + 180 * s);
   }
   function winSound(){
     beep(523.25, 0.07, "square", 0.04);
@@ -835,7 +808,9 @@ function lerp(a, b, t){ return a + (b - a) * t; }
   let transition = { active:false, t:0, dur:260, from:State.MENU, to:State.MENU };
   function goTo(newState){
     if (transition.active) return;
-    if (newState === State.CREDITS){
+    if (newState === State.SETUP){
+      setupScrollY = 0;
+    } else if (newState === State.CREDITS){
       creditsScrollY = 0;
     } else if (newState === State.HELP){
       helpScrollY = 0;
@@ -1716,53 +1691,54 @@ function lerp(a, b, t){ return a + (b - a) * t; }
     return { team, x, y, vx:0, vy:0, r, m:1.0, alive:true, target:null, aiPersonality:null, aiDecisionTag:null, aiKOChance:null, aiRiskChance:null };
   }
   function computeArenaScale(){
-    const viewport = getViewportLayoutMetrics();
-    const minDim = Math.min(viewport.usableW, viewport.usableH);
+    const minDim = Math.min(W, H);
     const scaleByMin = minDim / 820;
-    const scaleByW = (viewport.usableW - (isMobileCompactLayout() ? 36 : 72)) / 820;
-    const hudReserve = isMobileCompactLayout() ? 132 : 230;
-    const scaleByH = (viewport.usableH - hudReserve) / 520; // leave room for HUD + buttons
-    return clamp(Math.min(scaleByMin, scaleByW, scaleByH), isMobileCompactLayout() ? 0.40 : 0.58, 1.2);
+    const compact = isPhoneViewport() || isShortViewport();
+    const phoneLandscape = isPhoneLandscapeViewport();
+    const scaleByW = (W - (compact ? 28 : 72)) / 820;
+    const hudReserve = phoneLandscape ? 172 : compact ? 118 : isMobileCompactLayout() ? 170 : 230;
+    const scaleByH = (H - hudReserve) / 520; // leave room for HUD + buttons
+    return clamp(Math.min(scaleByMin, scaleByW, scaleByH), phoneLandscape ? 0.42 : compact ? 0.48 : isMobileCompactLayout() ? 0.52 : 0.58, 1.2);
   }
   function getArenaLayout(scale=computeArenaScale()){
-    const viewport = getViewportLayoutMetrics();
-    const compact = isMobileCompactLayout();
     const footballMode = isFootballMode();
     const hockeyMode = isHockeyMode();
     const fieldMode = footballMode || hockeyMode;
     const circleStage = (!fieldMode && config.stage === "CIRCLE");
+    const compact = isPhoneViewport() || isShortViewport();
+    const phoneLandscape = isPhoneLandscapeViewport();
     const plat = { x:0, y:0, w:0, h:0, cx:0, cy:0, radius:0, shape:"rect" };
 
     if (fieldMode){
       // Wide field-sport arena (east-west).
-      plat.w = Math.floor(clamp(viewport.usableW * 0.92, 520, viewport.usableW - 24));
-      plat.h = Math.floor(clamp(viewport.usableH * 0.46, 230, Math.min(430, viewport.usableH - (compact ? 150 : 210))));
-      plat.x = Math.floor(viewport.cx - plat.w/2);
-      plat.y = Math.floor(viewport.cy - plat.h/2 + (compact ? 8 : 26));
+      plat.w = Math.floor(clamp(W * (phoneLandscape ? 0.97 : compact ? 0.96 : 0.92), compact ? 420 : 520, W - (compact ? 18 : 44)));
+      plat.h = Math.floor(clamp(H * (phoneLandscape ? 0.36 : compact ? 0.42 : 0.46), phoneLandscape ? 150 : compact ? 180 : 230, Math.min(phoneLandscape ? 250 : compact ? 330 : 430, H - (phoneLandscape ? 110 : compact ? 120 : 210))));
+      plat.x = Math.floor(W/2 - plat.w/2);
+      plat.y = Math.floor(H/2 - plat.h/2 + (phoneLandscape ? 2 : compact ? 10 : 26));
+      plat.cx = plat.x + plat.w/2;
+      plat.cy = plat.y + plat.h/2;
       plat.radius = 0;
       plat.shape = "rect";
     } else if (circleStage){
       const diam = Math.floor(590 * scale);
       plat.w = diam;
       plat.h = diam;
-      plat.x = Math.floor(viewport.cx - diam/2);
-      plat.y = Math.floor(viewport.cy - diam/2 + (compact ? 2 : 10));
+      plat.x = Math.floor(W/2 - diam/2);
+      plat.y = Math.floor(H/2 - diam/2 + (phoneLandscape ? -6 : compact ? 0 : 10));
+      plat.cx = plat.x + diam/2;
+      plat.cy = plat.y + diam/2;
       plat.radius = diam/2;
       plat.shape = "circle";
     } else {
       plat.w = Math.floor(820 * scale);
       plat.h = Math.floor(520 * scale);
-      plat.x = Math.floor(viewport.cx - plat.w/2);
-      plat.y = Math.floor(viewport.cy - plat.h/2 + (compact ? 10 : 30));
+      plat.x = Math.floor(W/2 - plat.w/2);
+      plat.y = Math.floor(H/2 - plat.h/2 + (phoneLandscape ? 0 : compact ? 8 : 30));
+      plat.cx = plat.x + plat.w/2;
+      plat.cy = plat.y + plat.h/2;
       plat.radius = 0;
       plat.shape = "rect";
     }
-    const topMargin = compact ? 28 : 40;
-    const bottomMargin = compact ? 54 : 84;
-    plat.x = Math.floor(clamp(plat.x, viewport.left + 8, viewport.left + viewport.usableW - plat.w - 8));
-    plat.y = Math.floor(clamp(plat.y, viewport.top + topMargin, viewport.top + viewport.usableH - plat.h - bottomMargin));
-    plat.cx = plat.x + plat.w/2;
-    plat.cy = plat.y + plat.h/2;
     return { scale, footballMode, hockeyMode, fieldMode, circleStage, plat };
   }
   function getBridgesStageData(p=game.platform){
@@ -4560,11 +4536,20 @@ function lerp(a, b, t){ return a + (b - a) * t; }
     const titleKey = String(text || "").trim().toUpperCase();
     const mainTitle = (titleKey === "NEON KNOCKOUT");
     const displayText = mainTitle ? "Neon knockout" : text;
+    const phoneLandscape = isPhoneLandscapeViewport();
+    const phonePortrait = isPhoneViewport() && !phoneLandscape;
 
     if (mainTitle){
       // Neon-sign style title inspired by reference image.
       const pulse = 0.86 + 0.14 * Math.sin(now() * 0.0038);
-      ctx.font = "500 72px \"Trebuchet MS\", \"Segoe UI\", sans-serif";
+      const titleSize = phoneLandscape
+        ? Math.floor(clamp(Math.min(W * 0.078, H * 0.18), 30, 48))
+        : phonePortrait
+        ? Math.floor(clamp(Math.min(W * 0.095, H * 0.12), 36, 56))
+        : (isShortViewport() || isPhoneViewport())
+        ? Math.floor(clamp(Math.min(W * 0.11, H * 0.14), 42, 68))
+        : 72;
+      ctx.font = `500 ${titleSize}px "Trebuchet MS", "Segoe UI", sans-serif`;
       ctx.lineJoin = "round";
       ctx.lineCap = "round";
 
@@ -4625,34 +4610,33 @@ function lerp(a, b, t){ return a + (b - a) * t; }
   // ============================================================
   function buildMenuUI(){
     ui.buttons = [];
-    const viewport = getViewportLayoutMetrics();
-    const compact = isMobileCompactLayout();
-    const bw = Math.min(360, Math.floor(viewport.usableW * (compact ? 0.62 : 0.50)));
-    const bh = compact ? 48 : 54;
-    const x = Math.floor(viewport.cx - bw/2);
-    const buttonGap = compact ? 14 : 16;
-    const quickW = Math.floor(bw * 1.10);
-    const quickH = Math.floor(bh * (compact ? 1.04 : 1.10));
-    const quickX = Math.floor(viewport.cx - quickW/2);
-    const stackH = quickH + bh * 3 + buttonGap * 3;
-    let y = Math.floor(clamp(
-      viewport.top + viewport.usableH * (compact ? 0.28 : 0.40),
-      viewport.top + (compact ? 72 : 120),
-      H - viewport.bottom - stackH - (compact ? 10 : 24)
-    ));
+    const phoneLandscape = isPhoneLandscapeViewport();
+    const phonePortrait = isPhoneViewport() && !phoneLandscape;
+    const compact = isShortViewport() || isPhoneViewport();
+    const bw = Math.min(
+      phoneLandscape ? 250 : phonePortrait ? 296 : compact ? 320 : 360,
+      Math.floor(W * (phoneLandscape ? 0.42 : phonePortrait ? 0.72 : compact ? 0.56 : 0.50))
+    );
+    const bh = phoneLandscape ? 34 : phonePortrait ? 42 : compact ? 46 : 54;
+    const x = Math.floor(W/2 - bw/2);
+    let y = Math.floor(H * (phoneLandscape ? 0.25 : phonePortrait ? 0.33 : compact ? 0.40 : 0.48));
+    const quickW = Math.floor(bw * (phoneLandscape ? 1.00 : 1.10));
+    const quickH = Math.floor(bh * (phoneLandscape ? 1.00 : 1.10));
+    const quickX = Math.floor(W/2 - quickW/2);
+    const rowGap = phoneLandscape ? 42 : phonePortrait ? 50 : compact ? 58 : 70;
 
     addButton("quick", quickX, y, quickW, quickH, "START", () => {
       startNewGame({ players:1, mode:"KNOCKOUT", difficulty:"NORMAL", stage:"CLASSIC", series:"BO3", speed:"1X", modifier:"STANDARD" });
     });
-    y += quickH + buttonGap;
+    y += rowGap;
     addButton("start", x, y, bw, bh, "CUSTOM GAME", () => goTo(State.SETUP));
-    y += bh + buttonGap;
+    y += rowGap;
     addButton("settings", x, y, bw, bh, "SETTINGS", () => {
       settingsBackState = null;
       helpBackState = null;
       goTo(State.SETTINGS);
     });
-    y += bh + buttonGap;
+    y += rowGap;
     addButton("credits", x, y, bw, bh, "CREDITS", () => {
       helpBackState = null;
       goTo(State.CREDITS);
@@ -4660,25 +4644,28 @@ function lerp(a, b, t){ return a + (b - a) * t; }
   }
 
   function getSetupLayout(){
-    const viewport = getViewportLayoutMetrics();
     if (isSetupCompactLayout()){
-      const panelW = Math.min(760, Math.floor(viewport.usableW * 0.94));
-      const panelH = clamp(Math.floor(viewport.usableH - 88), 280, Math.max(280, viewport.usableH - 16));
-      const px = Math.floor(viewport.cx - panelW/2);
-      const py = Math.floor(clamp(viewport.top + 34, viewport.top + 18, H - viewport.bottom - panelH - 12));
+      const phoneLandscape = isPhoneLandscapeViewport();
+      const phoneViewport = isPhoneViewport();
+      const panelW = Math.min(760, Math.floor(W * 0.92));
+      const panelH = clamp(Math.floor(H - (phoneLandscape ? 38 : phoneViewport ? 78 : 150)), phoneLandscape ? 320 : 470, Math.max(phoneLandscape ? 320 : 470, H - (phoneLandscape ? 20 : 84)));
+      const px = Math.floor(W/2 - panelW/2);
+      const py = Math.floor(phoneViewport
+        ? clamp(phoneLandscape ? 14 : 28, 12, Math.max(12, H - panelH - 16))
+        : clamp(H * 0.17, 84, Math.max(84, H - panelH - 36)));
       const pad = 18;
-      const headerH = 34;
-      const footerH = 88;
+      const headerH = phoneViewport ? 12 : 34;
+      const footerH = phoneLandscape ? 72 : 88;
       const viewX = px + pad;
       const viewY = py + headerH;
       const viewW = panelW - pad*2 - 8;
       const viewH = panelH - headerH - footerH;
       return { panelW, panelH, px, py, pad, viewX, viewY, viewW, viewH };
     }
-    const panelW = Math.min(760, Math.floor(viewport.usableW * 0.90));
-    const panelH = clamp(Math.floor(viewport.usableH * 0.72), 620, Math.max(620, viewport.usableH - 84));
-    const px = Math.floor(viewport.cx - panelW/2);
-    const py = Math.floor(clamp(viewport.top + 86, viewport.top + 40, H - viewport.bottom - panelH - 24));
+    const panelW = Math.min(760, Math.floor(W * 0.90));
+    const panelH = clamp(Math.floor(H * 0.72), 720, Math.max(720, H - 110));
+    const px = Math.floor(W/2 - panelW/2);
+    const py = Math.floor(clamp(H * 0.19, 96, Math.max(96, H - panelH - 36)));
     const pad = 22;
     const headerH = 44;
     const footerH = 108;
@@ -4689,43 +4676,51 @@ function lerp(a, b, t){ return a + (b - a) * t; }
     return { panelW, panelH, px, py, pad, viewX, viewY, viewW, viewH };
   }
   function getSettingsLayout(){
-    const viewport = getViewportLayoutMetrics();
-    if (isMobileCompactLayout()){
-      const panelW = Math.min(740, Math.floor(viewport.usableW * 0.94));
-      const panelH = clamp(Math.floor(viewport.usableH - 74), 240, Math.max(240, viewport.usableH - 12));
-      const px = Math.floor(viewport.cx - panelW/2);
-      const py = Math.floor(clamp(viewport.top + 24, viewport.top + 14, H - viewport.bottom - panelH - 10));
+    if (isMobileCompactLayout() || isShortViewport()){
+      const phoneLandscape = isPhoneLandscapeViewport();
+      const phoneViewport = isPhoneViewport();
+      const panelW = Math.min(740, Math.floor(W * 0.94));
+      const panelH = Math.max(250, H - (phoneLandscape ? 34 : phoneViewport ? 84 : 108));
+      const px = Math.floor(W/2 - panelW/2);
+      const py = phoneViewport
+        ? Math.max(phoneLandscape ? 14 : 28, Math.floor(H * (phoneLandscape ? 0.03 : 0.08)))
+        : Math.max(78, Math.floor(H * 0.16));
       const pad = 18;
-      const headerH = 30;
-      const footerH = 86;
+      const headerH = phoneViewport ? 12 : 30;
+      const footerH = phoneLandscape ? 76 : phoneViewport ? 88 : 28;
       const viewX = px + pad;
       const viewY = py + headerH;
       const viewW = panelW - pad*2 - 8;
       const viewH = panelH - headerH - footerH;
-      return { panelW, panelH, px, py, pad, headerH, footerH, viewX, viewY, viewW, viewH };
+      return { panelW, panelH, px, py, pad, viewX, viewY, viewW, viewH };
     }
-    const panelW = Math.min(760, Math.floor(viewport.usableW * 0.90));
-    const panelH = clamp(Math.floor(viewport.usableH * 0.62), 390, 520);
-    const px = Math.floor(viewport.cx - panelW/2);
-    const py = Math.floor(clamp(viewport.top + 70, viewport.top + 28, H - viewport.bottom - panelH - 90));
+    const panelW = Math.min(760, Math.floor(W * 0.90));
+    const panelH = clamp(Math.floor(H * 0.62), 390, 520);
+    const px = Math.floor(W/2 - panelW/2);
+    const py = Math.floor(clamp(H * 0.21, 70, Math.max(70, H - panelH - 120)));
     const pad = 22;
     const headerH = 40;
-    const footerH = 82;
+    const footerH = 18;
     const viewX = px + pad;
     const viewY = py + headerH;
     const viewW = panelW - pad*2 - 10;
     const viewH = panelH - headerH - footerH;
-    return { panelW, panelH, px, py, pad, headerH, footerH, viewX, viewY, viewW, viewH };
+    return { panelW, panelH, px, py, pad, viewX, viewY, viewW, viewH };
   }
   function getCreditsLayout(){
-    const viewport = getViewportLayoutMetrics();
-    const panelW = Math.min(760, Math.floor(viewport.usableW * 0.90));
-    const panelH = clamp(Math.floor(viewport.usableH * 0.40), 220, 320);
-    const px = Math.floor(viewport.cx - panelW/2);
-    const py = Math.floor(clamp(viewport.top + 76, viewport.top + 28, H - viewport.bottom - panelH - 110));
-    const pad = 22;
-    const headerH = 64;
-    const footerH = 20;
+    const compact = isPhoneViewport() || isShortViewport();
+    const phoneLandscape = isPhoneLandscapeViewport();
+    const panelW = Math.min(760, Math.floor(W * (compact ? 0.92 : 0.90)));
+    const panelH = compact
+      ? clamp(Math.floor(H - (phoneLandscape ? 36 : 108)), 180, Math.max(180, H - (phoneLandscape ? 18 : 48)))
+      : clamp(Math.floor(H * 0.40), 240, 320);
+    const px = Math.floor(W/2 - panelW/2);
+    const py = compact
+      ? Math.floor(clamp(phoneLandscape ? 14 : 34, 12, Math.max(12, H - panelH - 18)))
+      : Math.floor(clamp(H * 0.30, 104, Math.max(104, H - panelH - 180)));
+    const pad = compact ? 18 : 22;
+    const headerH = compact ? 12 : 64;
+    const footerH = compact ? (phoneLandscape ? 72 : 86) : 20;
     const viewX = px + pad;
     const viewY = py + headerH;
     const viewW = panelW - pad*2 - 10;
@@ -4733,11 +4728,10 @@ function lerp(a, b, t){ return a + (b - a) * t; }
     return { panelW, panelH, px, py, pad, viewX, viewY, viewW, viewH };
   }
   function getHelpLayout(){
-    const viewport = getViewportLayoutMetrics();
-    const panelW = Math.min(760, Math.floor(viewport.usableW * 0.90));
-    const panelH = clamp(Math.floor(viewport.usableH * 0.52), 280, 430);
-    const px = Math.floor(viewport.cx - panelW/2);
-    const py = Math.floor(clamp(viewport.top + 54, viewport.top + 22, H - viewport.bottom - panelH - 90));
+    const panelW = Math.min(760, Math.floor(W * 0.90));
+    const panelH = clamp(Math.floor(H * 0.52), 320, 430);
+    const px = Math.floor(W/2 - panelW/2);
+    const py = Math.floor(clamp(H * 0.26, 88, Math.max(88, H - panelH - 150)));
     const pad = 22;
     const headerH = 40;
     const footerH = 24;
@@ -4756,7 +4750,7 @@ function lerp(a, b, t){ return a + (b - a) * t; }
     const { panelW, panelH, px, py, pad, viewX, viewY, viewW, viewH } = getSetupLayout();
     const compact = isSetupCompactLayout();
 
-    let y = viewY - setupScrollY;
+    let y = viewY + (compact ? 6 : 0) - setupScrollY;
     function section(label){
       setupSectionHeaders.push({ label, y });
       y += compact ? 14 : 18;
@@ -4764,9 +4758,10 @@ function lerp(a, b, t){ return a + (b - a) * t; }
 
     function row(btns, cols=btns.length){
       const gap = compact ? 8 : 12;
-      const bw = (viewW - gap*(cols-1)) / cols;
+      const rowInset = compact ? 6 : 0;
+      const bw = (viewW - rowInset * 2 - gap*(cols-1)) / cols;
       const bh = compact ? 38 : 46;
-      let x = viewX;
+      let x = viewX + rowInset;
       for (const b of btns){
         addButton(b.id, x, y, bw, bh, b.label, b.onClick, b.enabled!==false, b.selected===true);
         x += bw + gap;
@@ -4814,14 +4809,15 @@ function lerp(a, b, t){ return a + (b - a) * t; }
     ], 3);
 
     y += compact ? 1 : 4;
-    section("MODIFIERS");
-
-    // SERIES
+    section("ROUND");
     row([
-      { id:"ser_bo3", label:"BEST OF 3", onClick:()=>{ config.series="BO3"; buildSetupUI(); beep(480,0.03,"triangle",0.03); }, enabled:true, selected:(config.series==="BO3") },
-      { id:"ser_bo6", label:"BEST OF 6", onClick:()=>{ config.series="BO6"; buildSetupUI(); beep(480,0.03,"triangle",0.03); }, enabled:true, selected:(config.series==="BO6") },
-      { id:"ser_bo9", label:"BEST OF 9", onClick:()=>{ config.series="BO9"; buildSetupUI(); beep(480,0.03,"triangle",0.03); }, enabled:true, selected:(config.series==="BO9") }
+      { id:"ser_bo3", label:"3", onClick:()=>{ config.series="BO3"; buildSetupUI(); beep(480,0.03,"triangle",0.03); }, enabled:true, selected:(config.series==="BO3") },
+      { id:"ser_bo6", label:"6", onClick:()=>{ config.series="BO6"; buildSetupUI(); beep(480,0.03,"triangle",0.03); }, enabled:true, selected:(config.series==="BO6") },
+      { id:"ser_bo9", label:"9", onClick:()=>{ config.series="BO9"; buildSetupUI(); beep(480,0.03,"triangle",0.03); }, enabled:true, selected:(config.series==="BO9") }
     ]);
+
+    y += compact ? 1 : 4;
+    section("MODIFIERS");
 
     // SPEED
     row([
@@ -4856,14 +4852,14 @@ function lerp(a, b, t){ return a + (b - a) * t; }
 
   function buildSettingsUI(){
     ui.buttons = [];
-    const viewport = getViewportLayoutMetrics();
+    const compact = isMobileCompactLayout() || isShortViewport();
     const { py, panelH, viewW } = getSettingsLayout();
-    const bh = 50;
-    const gap = 14;
+    const bh = compact ? 44 : 50;
+    const gap = compact ? 10 : 14;
     const footerW = Math.min(viewW, 620);
     const bw = Math.floor((footerW - gap) / 2);
-    const bx = Math.floor(viewport.cx - footerW/2);
-    const by = Math.floor(py + panelH - bh - (isMobileCompactLayout() ? 16 : 20));
+    const bx = Math.floor(W/2 - footerW/2);
+    const by = Math.floor(py + panelH - bh - (compact ? 14 : 18));
     addButton("settings_back", bx, by, bw, bh, "BACK", () => {
       helpBackState = null;
       if (settingsBackState === State.PAUSE){ state = State.PAUSE; ui.buttons = []; /* keep paused */ }
@@ -4877,23 +4873,24 @@ function lerp(a, b, t){ return a + (b - a) * t; }
 
   function buildCreditsUI(){
     ui.buttons = [];
-    const viewport = getViewportLayoutMetrics();
-    const bw = Math.min(280, Math.floor(W * 0.38));
-    const bh = 50;
-    const { py, panelH } = getCreditsLayout();
-    const by = Math.floor(Math.min(H - viewport.bottom - bh - 10, py + panelH + 18));
+    const compact = isPhoneViewport() || isShortViewport();
+    const { py, panelH, viewW } = getCreditsLayout();
+    const bw = compact ? Math.min(viewW, 320) : Math.min(280, Math.floor(W * 0.38));
+    const bh = compact ? 44 : 50;
+    const by = compact
+      ? Math.floor(py + panelH - bh - 14)
+      : Math.floor(Math.min(H - bh - 34, py + panelH + 24));
     creditsScrollY = clamp(creditsScrollY, 0, creditsScrollMax);
-    addButton("back", Math.floor(viewport.cx - bw/2), by, bw, bh, "BACK", () => goTo(State.MENU));
+    addButton("back", Math.floor(W/2 - bw/2), by, bw, bh, "BACK", () => goTo(State.MENU));
   }
   function buildHelpUI(){
     ui.buttons = [];
-    const viewport = getViewportLayoutMetrics();
     const bw = Math.min(280, Math.floor(W * 0.38));
     const bh = 50;
     const { py, panelH } = getHelpLayout();
-    const by = Math.floor(Math.min(H - viewport.bottom - bh - 10, py + panelH + 18));
+    const by = Math.floor(Math.min(H - bh - 34, py + panelH + 24));
     helpScrollY = clamp(helpScrollY, 0, helpScrollMax);
-    addButton("back", Math.floor(viewport.cx - bw/2), by, bw, bh, "BACK", () => {
+    addButton("back", Math.floor(W/2 - bw/2), by, bw, bh, "BACK", () => {
       if (helpBackState){ goTo(helpBackState); }
       else { goTo(State.SETTINGS); }
     });
@@ -4901,11 +4898,10 @@ function lerp(a, b, t){ return a + (b - a) * t; }
 
   function buildWinUI(){
     ui.buttons = [];
-    const viewport = getViewportLayoutMetrics();
     const bw = Math.min(320, Math.floor(W * 0.44));
-    const bh = isMobileCompactLayout() ? 48 : 54;
-    const x = Math.floor(viewport.cx - bw/2);
-    let y = Math.floor(viewport.top + viewport.usableH * 0.60);
+    const bh = 54;
+    const x = Math.floor(W/2 - bw/2);
+    let y = Math.floor(H * 0.60);
     const primaryLabel = game.seriesOver ? "NEW GAME" : "NEXT MATCH";
 
     addButton("again", x, y, bw, bh, primaryLabel, () => {
@@ -4941,28 +4937,25 @@ function lerp(a, b, t){ return a + (b - a) * t; }
 
 function buildPauseUI(){
     ui.pauseButtons = [];
-    const viewport = getViewportLayoutMetrics();
-    const compact = isMobileCompactLayout();
-    const panelW = Math.min(560, Math.floor(viewport.usableW * (compact ? 0.84 : 0.78)));
-    const panelH = clamp(Math.floor(viewport.usableH * (compact ? 0.82 : 0.76)), compact ? 300 : 360, Math.min(412, viewport.usableH - 18));
-    const bw = Math.min(360, Math.floor(panelW * (compact ? 0.76 : 0.70)));
-    const bh = compact ? 46 : 52;
-    const x = Math.floor(viewport.cx - bw/2);
-    const py = Math.floor(viewport.cy - panelH/2);
-    let y = py + (compact ? 92 : 120);
-    const step = compact ? 54 : 62;
+    const panelW = Math.min(560, Math.floor(W * 0.78));
+    const panelH = 412;
+    const bw = Math.min(360, Math.floor(panelW * 0.70));
+    const bh = 52;
+    const x = Math.floor(W/2 - bw/2);
+    const py = Math.floor(H/2 - panelH/2);
+    let y = py + 120;
 
     const add = (id, yy, label, onClick) =>
       ui.pauseButtons.push({ id, x, y: yy, w: bw, h: bh, label, onClick, enabled: true });
 
-    add("pause_resume", y, "RESUME", () => resumeGame()); y += step;
+    add("pause_resume", y, "RESUME", () => resumeGame()); y += 62;
     add("pause_restart_round", y, "RESTART ROUND", () => {
       if (state !== State.PAUSE) return;
       resetMatch();
       beep(360, 0.05, "square", 0.035);
       resumeGame();
-    }); y += step;
-    add("pause_settings", y, "SETTINGS", () => { settingsBackState = State.PAUSE; helpBackState = null; state = State.SETTINGS; ui.buttons = []; buildSettingsUI(); }); y += step;
+    }); y += 62;
+    add("pause_settings", y, "SETTINGS", () => { settingsBackState = State.PAUSE; helpBackState = null; state = State.SETTINGS; ui.buttons = []; buildSettingsUI(); }); y += 62;
     add("pause_menu", y, "MAIN MENU", () => { paused = false; settingsBackState = null; helpBackState = null; ui.pauseButtons = []; goTo(State.MENU); });
   }
 
@@ -6050,15 +6043,15 @@ for (let i = 0; i < all.length; i++){
   }
   function drawSportScoreboard(){
     const p = game.platform;
-    const viewport = getViewportLayoutMetrics();
     const sideLabel = isTwoPlayerMode() ? "P2" : "AI";
     const p1Pal = getTeamPalette(1);
     const p2Pal = getTeamPalette(2);
-    const compact = isMobileCompactLayout();
-    const bw = Math.floor(clamp(p.w * (compact ? 0.70 : 0.62), compact ? 280 : 340, compact ? 520 : 620));
-    const bh = compact ? 42 : 48;
-    const bx = Math.floor(viewport.cx - bw/2);
-    const by = Math.floor(Math.max(viewport.top + (compact ? 4 : 10), p.y - bh - (compact ? 20 : 30)));
+    const compact = isPhoneViewport() || isShortViewport();
+    const phoneLandscape = isPhoneLandscapeViewport();
+    const bw = Math.floor(clamp(p.w * (phoneLandscape ? 0.64 : compact ? 0.70 : 0.62), compact ? 280 : 340, compact ? 520 : 620));
+    const bh = phoneLandscape ? 36 : compact ? 42 : 48;
+    const bx = Math.floor(W/2 - bw/2);
+    const by = Math.floor(Math.max(phoneLandscape ? 30 : compact ? 48 : 66, p.y - bh - (phoneLandscape ? 8 : compact ? 12 : 20)));
     const lx = Math.floor(bx + bw * 0.22);
     const rx = Math.floor(bx + bw * 0.78);
     const cx = Math.floor(bx + bw * 0.50);
@@ -6076,7 +6069,7 @@ for (let i = 0; i < all.length; i++){
 
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.font = `${compact ? 9 : 10}px ui-monospace, Menlo, Consolas, monospace`;
+    ctx.font = `${phoneLandscape ? 8 : compact ? 9 : 10}px ui-monospace, Menlo, Consolas, monospace`;
     ctx.fillStyle = p1Pal.marker;
     ctx.fillText("P1", lx, by + 10);
     ctx.fillStyle = p2Pal.marker;
@@ -6088,18 +6081,18 @@ for (let i = 0; i < all.length; i++){
     const roundText = `ROUND ${clamp(game.match, 1, meta.bestOf)}/${meta.bestOf}`;
 
     ctx.fillStyle = "rgba(246,255,250,0.96)";
-    ctx.font = `${compact ? 19 : 23}px ui-monospace, Menlo, Consolas, monospace`;
+    ctx.font = `${phoneLandscape ? 17 : compact ? 19 : 23}px ui-monospace, Menlo, Consolas, monospace`;
     ctx.fillText(String(leftScore), lx, by + 29);
     ctx.fillText(String(rightScore), rx, by + 29);
 
     ctx.fillStyle = "rgba(0,228,102,0.88)";
-    ctx.font = `${compact ? 10 : 11}px ui-monospace, Menlo, Consolas, monospace`;
+    ctx.font = `${phoneLandscape ? 9 : compact ? 10 : 11}px ui-monospace, Menlo, Consolas, monospace`;
     if (isKeepAwayMode()){
       const ka = game.keepAway;
       const holderLabel = ka.streakTeam === 1 ? "P1" : (ka.streakTeam === 2 ? sideLabel : "NONE");
       ctx.fillText(`KEEP AWAY ${ka.streakCount}/${ka.targetStreak}`, cx, by + 11);
       ctx.fillStyle = "rgba(217,255,239,0.78)";
-      ctx.font = `${compact ? 9 : 10}px ui-monospace, Menlo, Consolas, monospace`;
+      ctx.font = `${phoneLandscape ? 8 : compact ? 9 : 10}px ui-monospace, Menlo, Consolas, monospace`;
       ctx.fillText(`HOLDER ${holderLabel}  ${clamp(game.match, 1, meta.bestOf)}/${meta.bestOf}`, cx, by + 30);
     } else {
       ctx.fillText(roundText, cx, by + 11);
@@ -6427,15 +6420,15 @@ function drawTargetMarker(tx, ty, color, alpha=1, dirX=1, dirY=0){
   function buildGameUI(){
     ui.buttons = [];
 
-    const viewport = getViewportLayoutMetrics();
-    const compact = isMobileCompactLayout();
+    const compact = isPhoneViewport() || isShortViewport();
+    const phoneLandscape = isPhoneLandscapeViewport();
     const gap = compact ? 8 : 12;
-    const totalW = Math.min(Math.floor(viewport.usableW * (compact ? 0.92 : 0.88)), Math.floor(game.platform.w * (compact ? 0.96 : 0.92)));
-    const pauseW = clamp(Math.floor(totalW * (compact ? 0.20 : 0.22)), compact ? 82 : 110, compact ? 124 : 170);
+    const totalW = Math.min(Math.floor(W * (compact ? 0.94 : 0.88)), Math.floor(game.platform.w * (compact ? 0.96 : 0.92)));
+    const pauseW = clamp(Math.floor(totalW * (compact ? 0.20 : 0.22)), compact ? 74 : 110, compact ? 116 : 170);
     const bw = Math.floor((totalW - pauseW - gap*2) / 2);
-    const bh = compact ? 36 : 44;
-    const x = Math.floor(viewport.cx - totalW/2);
-    const y = Math.floor(Math.min(game.platform.y + game.platform.h + (compact ? 10 : 22), H - viewport.bottom - bh - 6));
+    const bh = phoneLandscape ? 30 : compact ? 36 : 44;
+    const x = Math.floor(W/2 - totalW/2);
+    const y = Math.floor(game.platform.y + game.platform.h + (phoneLandscape ? 4 : compact ? 12 : 22));
 
     addButton("primary", x, y, bw, bh, "START", () => {
       if (isSinglePlayerMode()){
@@ -6459,7 +6452,7 @@ function drawTargetMarker(tx, ty, color, alpha=1, dirX=1, dirY=0){
     addButton("pause_ingame", x + bw + gap, y, pauseW, bh, "PAUSE", () => {
       if (state === State.GAME) pauseGame();
     });
-    addButton("clear", x + bw + gap + pauseW + gap, y, bw, bh, "CLEAR (C)", () => clearPlans());
+    addButton("clear", x + bw + gap + pauseW + gap, y, bw, bh, compact ? "CLEAR" : "CLEAR (C)", () => clearPlans());
   }
 
   function setGameUIButtonStates(){
@@ -6529,43 +6522,80 @@ function drawTargetMarker(tx, ty, color, alpha=1, dirX=1, dirY=0){
     if (state !== State.GAME) return;
     if (!onboarding.active) return;
     const tutorial = getOnboardingTutorial(onboarding.mode || onboardingModeKey());
+    const compact = isPhoneViewport() || isShortViewport();
+    const drawWrappedBlock = (text, x, y, maxWidth, lineHeight) => {
+      const words = String(text).split(/\s+/);
+      let line = "";
+      let lines = 0;
+      for (let i = 0; i < words.length; i++){
+        const test = line ? `${line} ${words[i]}` : words[i];
+        if (ctx.measureText(test).width > maxWidth && line){
+          ctx.fillText(line, x, y + lines * lineHeight);
+          line = words[i];
+          lines++;
+        } else {
+          line = test;
+        }
+      }
+      if (line){
+        ctx.fillText(line, x, y + lines * lineHeight);
+        lines++;
+      }
+      return lines;
+    };
 
     ctx.save();
     ctx.fillStyle = "rgba(0,0,0,0.88)";
     ctx.fillRect(0, 0, W, H);
 
-    const pw = Math.min(760, Math.floor(W * 0.90));
-    const ph = clamp(Math.floor(H * 0.56), 330, 460);
+    const pw = Math.min(compact ? 760 : 760, Math.floor(W * (compact ? 0.92 : 0.90)));
+    const ph = clamp(Math.floor(H * (compact ? 0.62 : 0.56)), compact ? 360 : 330, compact ? 520 : 460);
     const px = Math.floor(W/2 - pw/2);
     const py = Math.floor(H/2 - ph/2);
+    const innerPad = compact ? 22 : 34;
+    const bodyX = px + innerPad;
+    const bodyW = pw - innerPad * 2;
+    const titleFont = compact ? 27 : 32;
+    const subtitleFont = compact ? 13 : 15;
+    const bodyFont = compact ? 12 : 14;
+    const titleY = py + (compact ? 46 : 52);
+    const subtitleY = py + (compact ? 78 : 84);
+    const tipsTop = py + (compact ? 112 : 126);
+    const lineHeight = compact ? 20 : 22;
+    const tipGap = compact ? 9 : 12;
+    const ctaY = py + ph - (compact ? 28 : 34);
     drawPanel(px, py, pw, ph);
 
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillStyle = COL_NEON;
-    ctx.font = "800 32px ui-monospace, Menlo, Consolas, monospace";
+    ctx.font = `800 ${titleFont}px ui-monospace, Menlo, Consolas, monospace`;
     ctx.shadowColor = "rgba(0,228,102,0.78)";
     ctx.shadowBlur = 16;
-    ctx.fillText(tutorial.title, W/2, py + 52);
+    ctx.fillText(tutorial.title, W/2, titleY);
 
     ctx.shadowBlur = 0;
     ctx.fillStyle = "rgba(175,255,214,0.92)";
-    ctx.font = "700 15px ui-monospace, Menlo, Consolas, monospace";
-    ctx.fillText(tutorial.subtitle, W/2, py + 84);
+    ctx.font = `700 ${subtitleFont}px ui-monospace, Menlo, Consolas, monospace`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    const subtitleLines = drawWrappedBlock(tutorial.subtitle, bodyX, subtitleY, bodyW, lineHeight);
 
     ctx.fillStyle = "rgba(217,255,239,0.90)";
-    ctx.font = "14px ui-monospace, Menlo, Consolas, monospace";
-    let y = py + 126;
+    ctx.font = `${bodyFont}px ui-monospace, Menlo, Consolas, monospace`;
+    let y = Math.max(tipsTop, subtitleY + subtitleLines * lineHeight + 14);
     for (const tip of tutorial.tips){
-      ctx.fillText(tip, W/2, y);
-      y += 34;
+      const lineCount = drawWrappedBlock(tip, bodyX, y, bodyW, lineHeight);
+      y += lineCount * lineHeight + tipGap;
     }
 
     ctx.fillStyle = "rgba(0,255,152,0.94)";
-    ctx.font = "700 16px ui-monospace, Menlo, Consolas, monospace";
+    ctx.font = `700 ${compact ? 14 : 16}px ui-monospace, Menlo, Consolas, monospace`;
     ctx.shadowColor = "rgba(0,228,102,0.70)";
     ctx.shadowBlur = 10;
-    ctx.fillText("CLICK OR TAP TO CONTINUE", W/2, py + ph - 34);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(compact ? "TAP TO CONTINUE" : "CLICK OR TAP TO CONTINUE", W/2, ctaY);
     ctx.restore();
   }
   function drawRotateDeviceOverlay(){
@@ -6713,8 +6743,11 @@ function drawTargetMarker(tx, ty, color, alpha=1, dirX=1, dirY=0){
   // ============================================================
   function drawMenu(t){
     drawNeonGrid(t);
-    const viewport = getViewportLayoutMetrics();
-    const titleY = Math.floor(viewport.top + viewport.usableH * (isMobileCompactLayout() ? 0.14 : 0.20));
+    const titleY = Math.floor(
+      isPhoneLandscapeViewport() ? Math.max(34, H * 0.10)
+      : (isPhoneViewport() ? Math.max(60, H * 0.14)
+      : (isShortViewport() ? H * 0.14 : H * 0.20))
+    );
     drawTitle(titleY, "NEON KNOCKOUT");
 
     const mx = input.x, my = input.y;
@@ -6726,6 +6759,9 @@ function drawTargetMarker(tx, ty, color, alpha=1, dirX=1, dirY=0){
   function drawSetup(t){
     drawNeonGrid(t);
     const { panelW, panelH, px, py, viewX, viewY, viewW, viewH } = getSetupLayout();
+    if (!isPhoneViewport()){
+      drawTitle(isSetupCompactLayout() ? Math.max(34, py - 34) : Math.max(92, py - 72), "CUSTOM GAME");
+    }
 
     drawPanel(px, py, panelW, panelH);
 
@@ -6792,16 +6828,29 @@ function drawTargetMarker(tx, ty, color, alpha=1, dirX=1, dirY=0){
         drawButton(b, mx, my);
       }
     }
+
+    if (!isSetupCompactLayout()){
+      ctx.save();
+      ctx.fillStyle = "rgba(0,228,102,0.45)";
+      ctx.font = `12px ${FONT}`;
+      ctx.textAlign = "center";
+      ctx.fillText("ESC / BACK TO RETURN", W/2, py + panelH + 24);
+      ctx.restore();
+    }
   }
 
   function drawSettings(t){
     drawNeonGrid(t);
     const { panelW, panelH, px, py, viewX, viewY, viewW, viewH } = getSettingsLayout();
+    if (!isPhoneViewport()){
+      drawTitle(isShortViewport() ? Math.max(56, py - 28) : Math.floor(H * 0.18), "SETTINGS");
+    }
     drawPanel(px, py, panelW, panelH);
     settingsScrollY = clamp(settingsScrollY, 0, settingsScrollMax);
+    const compact = isMobileCompactLayout() || isShortViewport();
 
     const rowX = viewX;
-    let rowY = viewY + 186 - settingsScrollY;
+    let rowY = viewY + (compact ? 176 : 186) - settingsScrollY;
     let soundSlider = null;
     let musicSlider = null;
     let devToggle = null;
@@ -6836,11 +6885,11 @@ function drawTargetMarker(tx, ty, color, alpha=1, dirX=1, dirY=0){
 
       let y = yStart + 22;
       const cols = 3;
-      const chipGap = 12;
+      const chipGap = compact ? 10 : 12;
       const gridW = Math.min(viewW - 6, 654);
       const gridX = Math.floor(viewX + (viewW - gridW) * 0.5);
       const cellW = Math.floor((gridW - chipGap * (cols - 1)) / cols);
-      const cellH = 42;
+      const cellH = compact ? 40 : 42;
 
       for (let i = 0; i < TEAM_COLOR_ORDER.length; i++){
         const key = TEAM_COLOR_ORDER[i];
@@ -6848,7 +6897,7 @@ function drawTargetMarker(tx, ty, color, alpha=1, dirX=1, dirY=0){
         const col = i % cols;
         const row = Math.floor(i / cols);
         const x = gridX + col * (cellW + chipGap);
-        const yy = y + row * (cellH + 10);
+        const yy = y + row * (cellH + (compact ? 8 : 10));
         const selected = (team === 1) ? settings.playerColor === key : settings.enemyColor === key;
         const locked = (team === 1) ? settings.enemyColor === key : settings.playerColor === key;
         const rect = drawColorChoiceChip(x, yy, cellW, cellH, preset, selected, locked);
@@ -6857,8 +6906,8 @@ function drawTargetMarker(tx, ty, color, alpha=1, dirX=1, dirY=0){
         }
       }
 
-      y += Math.ceil(TEAM_COLOR_ORDER.length / cols) * (cellH + 10);
-      return y + 10;
+      y += Math.ceil(TEAM_COLOR_ORDER.length / cols) * (cellH + (compact ? 8 : 10));
+      return y + (team === 2 ? (compact ? 34 : 24) : 10);
     };
 
     const mx = input.x, my = input.y;
@@ -6874,7 +6923,7 @@ function drawTargetMarker(tx, ty, color, alpha=1, dirX=1, dirY=0){
     rowY = drawColorSection("PLAYER TWO", 2, rowY);
     ctx.restore();
 
-    const contentBottom = rowY + settingsScrollY + 8;
+    const contentBottom = rowY + settingsScrollY + (compact ? 18 : 8);
     settingsScrollMax = Math.max(0, contentBottom - (viewY + viewH));
     settingsScrollY = clamp(settingsScrollY, 0, settingsScrollMax);
 
@@ -6945,14 +6994,17 @@ function drawTargetMarker(tx, ty, color, alpha=1, dirX=1, dirY=0){
 
     for (const b of getActiveButtons()) drawButton(b, mx, my);
 
+    if (!hasCoarsePointer()) drawFooterHint("ESC TO GO BACK");
     input.justUp = false;
     input.justDown = false;
   }
 
   function drawCredits(t){
     drawNeonGrid(t);
-
     const { panelW, panelH, px, py, viewX, viewY, viewW, viewH } = getCreditsLayout();
+    if (!isPhoneViewport()){
+      drawTitle(Math.floor(H * 0.18), "CREDITS");
+    }
     drawPanel(px, py, panelW, panelH);
     creditsScrollMax = 0;
     creditsScrollY = 0;
@@ -6961,15 +7013,18 @@ function drawTargetMarker(tx, ty, color, alpha=1, dirX=1, dirY=0){
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillStyle = "rgba(217,255,239,0.94)";
-    ctx.font = "700 22px ui-monospace, Menlo, Consolas, monospace";
-    ctx.fillText("Created by Aaron", W/2, viewY + Math.floor(viewH * 0.38));
-    ctx.font = "700 18px ui-monospace, Menlo, Consolas, monospace";
+    const compact = isPhoneViewport() || isShortViewport();
+    ctx.font = compact ? "700 18px ui-monospace, Menlo, Consolas, monospace" : "700 22px ui-monospace, Menlo, Consolas, monospace";
+    ctx.fillText("Created by Aaron", W/2, viewY + Math.floor(viewH * (compact ? 0.34 : 0.38)));
+    ctx.font = compact ? "700 15px ui-monospace, Menlo, Consolas, monospace" : "700 18px ui-monospace, Menlo, Consolas, monospace";
     ctx.fillStyle = "rgba(175,255,214,0.90)";
-    ctx.fillText("Music: Arcade Ride by Vens Adams", W/2, viewY + Math.floor(viewH * 0.62));
+    ctx.fillText("Music: Arcade Ride by Vens Adams", W/2, viewY + Math.floor(viewH * (compact ? 0.62 : 0.62)));
     ctx.restore();
 
     const mx = input.x, my = input.y;
     for (const b of getActiveButtons()) drawButton(b, mx, my);
+
+    if (!hasCoarsePointer()) drawFooterHint("ESC TO GO BACK");
   }
   function drawHelp(t){
     drawNeonGrid(t);
@@ -7093,19 +7148,17 @@ function drawTargetMarker(tx, ty, color, alpha=1, dirX=1, dirY=0){
     ctx.restore();
 
     // bordered pause panel
-    const viewport = getViewportLayoutMetrics();
-    const compact = isMobileCompactLayout();
-    const panelW = Math.min(560, Math.floor(viewport.usableW * (compact ? 0.84 : 0.78)));
-    const panelH = clamp(Math.floor(viewport.usableH * (compact ? 0.82 : 0.76)), compact ? 300 : 360, Math.min(412, viewport.usableH - 18));
-    const px = Math.floor(viewport.cx - panelW/2);
-    const py = Math.floor(viewport.cy - panelH/2);
+    const panelW = Math.min(560, Math.floor(W * 0.78));
+    const panelH = 412;
+    const px = Math.floor(W/2 - panelW/2);
+    const py = Math.floor(H/2 - panelH/2);
 
     drawPanel(px, py, panelW, panelH);
 
     ctx.save();
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.font = compact ? "800 36px ui-monospace, Menlo, Consolas, monospace" : "800 44px ui-monospace, Menlo, Consolas, monospace";
+    ctx.font = "800 44px ui-monospace, Menlo, Consolas, monospace";
     ctx.fillStyle = COL_NEON;
     ctx.shadowColor = "rgba(0,228,102,0.75)";
     ctx.shadowBlur = 18;
@@ -7116,29 +7169,49 @@ function drawTargetMarker(tx, ty, color, alpha=1, dirX=1, dirY=0){
 const mx = input.x, my = input.y;
     for (const b of getActiveButtons()) drawButton(b, mx, my);
 
+    if (!hasCoarsePointer()){
+      ctx.save();
+      ctx.fillStyle = "rgba(0,228,102,0.60)";
+      ctx.font = `12px ${FONT}`;
+      ctx.textAlign = "center";
+      ctx.fillText("ESC TO RESUME", W/2, py + panelH - 22);
+      ctx.restore();
+    }
   }
 
   function drawWin(t){
     drawNeonGrid(t);
 
-    ctx.save();
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.font = "800 52px ui-monospace, Menlo, Consolas, monospace";
-    ctx.shadowColor = "rgba(0,228,102,0.8)";
-    ctx.shadowBlur = 20;
-
     const sideLabel = isTwoPlayerMode() ? "PLAYER 2" : "AI";
     const winnerKey = game.seriesOver ? game.seriesWinner : game.winner;
     const msg = (winnerKey === "player") ? "PLAYER 1 WINS" : `${sideLabel} WINS`;
+    const sideScoreLabel = isTwoPlayerMode() ? "P2" : "AI";
+    const compact = isShortViewport();
+    const titleW = Math.min(540, Math.floor(W * 0.54));
+    const titleH = compact ? 74 : 86;
+    const scoreW = Math.min(420, Math.floor(W * 0.42));
+    const scoreH = compact ? 50 : 58;
+    const titleX = Math.floor(W/2 - titleW/2);
+    const titleY = Math.floor(H * (compact ? 0.22 : 0.24));
+    const scoreX = Math.floor(W/2 - scoreW/2);
+    const scoreY = titleY + titleH + 16;
+
+    ctx.save();
+    drawPanel(titleX, titleY, titleW, titleH);
+    drawPanel(scoreX, scoreY, scoreW, scoreH);
+
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.shadowColor = "rgba(0,228,102,0.8)";
+    ctx.shadowBlur = 18;
     ctx.fillStyle = COL_NEON;
-    ctx.fillText(msg, W/2, Math.floor(H*0.32));
+    ctx.font = `${compact ? 700 : 800} ${compact ? 38 : 46}px ui-monospace, Menlo, Consolas, monospace`;
+    ctx.fillText(msg, W/2, titleY + titleH * 0.52);
 
     ctx.shadowBlur = 0;
-    const sideScoreLabel = isTwoPlayerMode() ? "P2" : "AI";
-    ctx.font = "18px ui-monospace, Menlo, Consolas, monospace";
-    ctx.fillStyle = "rgba(217,255,239,0.7)";
-    ctx.fillText(`P1 ${game.playerWins} / ${game.aiWins} ${sideScoreLabel}`, W/2, Math.floor(H*0.32) + 56);
+    ctx.fillStyle = "rgba(217,255,239,0.84)";
+    ctx.font = `${compact ? 16 : 18}px ui-monospace, Menlo, Consolas, monospace`;
+    ctx.fillText(`P1 ${game.playerWins} / ${game.aiWins} ${sideScoreLabel}`, W/2, scoreY + scoreH * 0.5);
     ctx.restore();
 
     if (ui.buttons.length === 0) buildWinUI();
@@ -7206,7 +7279,7 @@ const mx = input.x, my = input.y;
   // Boot
   // ============================================================
   let resizeReflowTimer = null;
-  window.addEventListener("resize", () => {
+  function scheduleResponsiveRelayout(){
     if (resizeReflowTimer) clearTimeout(resizeReflowTimer);
     resizeReflowTimer = setTimeout(() => {
       resizeReflowTimer = null;
@@ -7234,7 +7307,10 @@ const mx = input.x, my = input.y;
       if (state === State.HELP){ buildHelpUI(); return; }
       if (state === State.WIN){ buildWinUI(); }
     }, 120);
-  }, { passive: true });
+  }
+  window.addEventListener("resize", scheduleResponsiveRelayout, { passive: true });
+  window.visualViewport?.addEventListener("resize", scheduleResponsiveRelayout, { passive: true });
+  window.visualViewport?.addEventListener("scroll", scheduleResponsiveRelayout, { passive: true });
 
   resetMatch();
   buildMenuUI();
