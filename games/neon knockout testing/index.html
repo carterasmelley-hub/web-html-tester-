@@ -370,7 +370,7 @@ function lerp(a, b, t){ return a + (b - a) * t; }
     }
   }
   function isPhoneViewport(){
-    return hasCoarsePointer() && (Math.min(W, H) <= 560 || (W <= 980 && H <= 560));
+    return Math.min(W, H) <= 560 || (W <= 980 && H <= 560);
   }
   function isPhoneLandscapeViewport(){
     return isPhoneViewport() && W > H;
@@ -893,8 +893,16 @@ function lerp(a, b, t){ return a + (b - a) * t; }
     ctx.stroke();
 
     ctx.fillStyle = hovered ? COL_NEON : COL_TEXT;
-    const btnFont = (String(b.label).length > 12) ? "600 15px ui-monospace, Menlo, Consolas, monospace" : "600 18px ui-monospace, Menlo, Consolas, monospace";
-    ctx.font = btnFont;
+    const label = String(b.label || "");
+    let fontPx = 18;
+    if (b.w <= 190 || label.length > 10) fontPx = 16;
+    if (b.w <= 150 || label.length > 12) fontPx = 14;
+    if (b.w <= 120 || label.length > 14) fontPx = 12;
+    if (b.w <= 96 || label.length > 16) fontPx = 10;
+    if (isPhoneViewport()){
+      fontPx = Math.min(fontPx, label.length > 10 ? 11 : 13);
+    }
+    ctx.font = `600 ${fontPx}px ui-monospace, Menlo, Consolas, monospace`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     const dy = pressed ? 1.5 : 0;
@@ -1695,10 +1703,11 @@ function lerp(a, b, t){ return a + (b - a) * t; }
     const scaleByMin = minDim / 820;
     const compact = isPhoneViewport() || isShortViewport();
     const phoneLandscape = isPhoneLandscapeViewport();
-    const scaleByW = (W - (compact ? 28 : 72)) / 820;
-    const hudReserve = phoneLandscape ? 172 : compact ? 118 : isMobileCompactLayout() ? 170 : 230;
+    const portraitCompact = compact && !phoneLandscape;
+    const scaleByW = (W - (portraitCompact ? 44 : compact ? 28 : 72)) / 820;
+    const hudReserve = phoneLandscape ? 172 : portraitCompact ? 148 : compact ? 118 : isMobileCompactLayout() ? 170 : 230;
     const scaleByH = (H - hudReserve) / 520; // leave room for HUD + buttons
-    return clamp(Math.min(scaleByMin, scaleByW, scaleByH), phoneLandscape ? 0.42 : compact ? 0.48 : isMobileCompactLayout() ? 0.52 : 0.58, 1.2);
+    return clamp(Math.min(scaleByMin, scaleByW, scaleByH), phoneLandscape ? 0.42 : portraitCompact ? 0.40 : compact ? 0.48 : isMobileCompactLayout() ? 0.52 : 0.58, 1.2);
   }
   function getArenaLayout(scale=computeArenaScale()){
     const footballMode = isFootballMode();
@@ -1707,14 +1716,15 @@ function lerp(a, b, t){ return a + (b - a) * t; }
     const circleStage = (!fieldMode && config.stage === "CIRCLE");
     const compact = isPhoneViewport() || isShortViewport();
     const phoneLandscape = isPhoneLandscapeViewport();
+    const portraitCompact = compact && !phoneLandscape;
     const plat = { x:0, y:0, w:0, h:0, cx:0, cy:0, radius:0, shape:"rect" };
 
     if (fieldMode){
       // Wide field-sport arena (east-west).
-      plat.w = Math.floor(clamp(W * (phoneLandscape ? 0.97 : compact ? 0.96 : 0.92), compact ? 420 : 520, W - (compact ? 18 : 44)));
-      plat.h = Math.floor(clamp(H * (phoneLandscape ? 0.36 : compact ? 0.42 : 0.46), phoneLandscape ? 150 : compact ? 180 : 230, Math.min(phoneLandscape ? 250 : compact ? 330 : 430, H - (phoneLandscape ? 110 : compact ? 120 : 210))));
+      plat.w = Math.floor(clamp(W * (phoneLandscape ? 0.97 : portraitCompact ? 0.78 : compact ? 0.96 : 0.92), portraitCompact ? 240 : compact ? 420 : 520, W - (portraitCompact ? 48 : compact ? 18 : 44)));
+      plat.h = Math.floor(clamp(H * (phoneLandscape ? 0.36 : portraitCompact ? 0.22 : compact ? 0.42 : 0.46), portraitCompact ? 110 : compact ? 180 : 230, Math.min(portraitCompact ? 170 : phoneLandscape ? 250 : compact ? 330 : 430, H - (portraitCompact ? 240 : phoneLandscape ? 110 : compact ? 120 : 210))));
       plat.x = Math.floor(W/2 - plat.w/2);
-      plat.y = Math.floor(H/2 - plat.h/2 + (phoneLandscape ? 2 : compact ? 10 : 26));
+      plat.y = Math.floor(H/2 - plat.h/2 + (phoneLandscape ? 2 : portraitCompact ? 72 : compact ? 10 : 26));
       plat.cx = plat.x + plat.w/2;
       plat.cy = plat.y + plat.h/2;
       plat.radius = 0;
@@ -4614,16 +4624,16 @@ function lerp(a, b, t){ return a + (b - a) * t; }
     const phonePortrait = isPhoneViewport() && !phoneLandscape;
     const compact = isShortViewport() || isPhoneViewport();
     const bw = Math.min(
-      phoneLandscape ? 250 : phonePortrait ? 296 : compact ? 320 : 360,
-      Math.floor(W * (phoneLandscape ? 0.42 : phonePortrait ? 0.72 : compact ? 0.56 : 0.50))
+      phoneLandscape ? 250 : phonePortrait ? 272 : compact ? 320 : 360,
+      Math.floor(W * (phoneLandscape ? 0.42 : phonePortrait ? 0.66 : compact ? 0.56 : 0.50))
     );
-    const bh = phoneLandscape ? 34 : phonePortrait ? 42 : compact ? 46 : 54;
+    const bh = phoneLandscape ? 34 : phonePortrait ? 38 : compact ? 46 : 54;
     const x = Math.floor(W/2 - bw/2);
-    let y = Math.floor(H * (phoneLandscape ? 0.25 : phonePortrait ? 0.33 : compact ? 0.40 : 0.48));
+    let y = Math.floor(H * (phoneLandscape ? 0.25 : phonePortrait ? 0.27 : compact ? 0.40 : 0.48));
     const quickW = Math.floor(bw * (phoneLandscape ? 1.00 : 1.10));
     const quickH = Math.floor(bh * (phoneLandscape ? 1.00 : 1.10));
     const quickX = Math.floor(W/2 - quickW/2);
-    const rowGap = phoneLandscape ? 42 : phonePortrait ? 50 : compact ? 58 : 70;
+    const rowGap = phoneLandscape ? 42 : phonePortrait ? 44 : compact ? 58 : 70;
 
     addButton("quick", quickX, y, quickW, quickH, "START", () => {
       startNewGame({ players:1, mode:"KNOCKOUT", difficulty:"NORMAL", stage:"CLASSIC", series:"BO3", speed:"1X", modifier:"STANDARD" });
@@ -4647,15 +4657,16 @@ function lerp(a, b, t){ return a + (b - a) * t; }
     if (isSetupCompactLayout()){
       const phoneLandscape = isPhoneLandscapeViewport();
       const phoneViewport = isPhoneViewport();
-      const panelW = Math.min(760, Math.floor(W * 0.92));
-      const panelH = clamp(Math.floor(H - (phoneLandscape ? 38 : phoneViewport ? 78 : 150)), phoneLandscape ? 320 : 470, Math.max(phoneLandscape ? 320 : 470, H - (phoneLandscape ? 20 : 84)));
+      const narrow = W <= 430;
+      const panelW = Math.min(760, Math.floor(W * (narrow ? 0.96 : 0.92)));
+      const panelH = clamp(Math.floor(H - (phoneLandscape ? 38 : narrow ? 18 : phoneViewport ? 78 : 150)), phoneLandscape ? 320 : narrow ? 350 : 470, Math.max(phoneLandscape ? 320 : narrow ? 350 : 470, H - (phoneLandscape ? 20 : 34)));
       const px = Math.floor(W/2 - panelW/2);
       const py = Math.floor(phoneViewport
-        ? clamp(phoneLandscape ? 14 : 28, 12, Math.max(12, H - panelH - 16))
+        ? clamp(phoneLandscape ? 14 : 18, 10, Math.max(10, H - panelH - 10))
         : clamp(H * 0.17, 84, Math.max(84, H - panelH - 36)));
-      const pad = 18;
+      const pad = narrow ? 14 : 18;
       const headerH = phoneViewport ? 12 : 34;
-      const footerH = phoneLandscape ? 72 : 88;
+      const footerH = phoneLandscape ? 72 : narrow ? 62 : 88;
       const viewX = px + pad;
       const viewY = py + headerH;
       const viewW = panelW - pad*2 - 8;
@@ -4749,6 +4760,7 @@ function lerp(a, b, t){ return a + (b - a) * t; }
     if (!mapUnlocks.doors && config.stage === "DOORS") config.stage = "CLASSIC";
     const { panelW, panelH, px, py, pad, viewX, viewY, viewW, viewH } = getSetupLayout();
     const compact = isSetupCompactLayout();
+    const narrow = W <= 430;
 
     let y = viewY + (compact ? 6 : 0) - setupScrollY;
     function section(label){
@@ -4757,16 +4769,16 @@ function lerp(a, b, t){ return a + (b - a) * t; }
     }
 
     function row(btns, cols=btns.length){
-      const gap = compact ? 8 : 12;
-      const rowInset = compact ? 6 : 0;
+      const gap = compact ? (narrow ? 6 : 8) : 12;
+      const rowInset = compact ? (narrow ? 8 : 6) : 0;
       const bw = (viewW - rowInset * 2 - gap*(cols-1)) / cols;
-      const bh = compact ? 38 : 46;
+      const bh = compact ? (narrow ? 34 : 38) : 46;
       let x = viewX + rowInset;
       for (const b of btns){
         addButton(b.id, x, y, bw, bh, b.label, b.onClick, b.enabled!==false, b.selected===true);
         x += bw + gap;
       }
-      y += bh + (compact ? 8 : 14);
+      y += bh + (compact ? (narrow ? 6 : 8) : 14);
     }
 
     // PLAYERS
@@ -4774,7 +4786,7 @@ function lerp(a, b, t){ return a + (b - a) * t; }
       { id:"players_1p", label:"ONE PLAYER", onClick:()=>{ config.players=1; buildSetupUI(); beep(600,0.03,"square",0.03); }, enabled:true, selected:(config.players===1) },
       { id:"players_2p", label:"TWO PLAYER", onClick:()=>{ config.players=2; buildSetupUI(); beep(600,0.03,"square",0.03); }, enabled:true, selected:(config.players===2) }
     ], 2);
-    y += compact ? 8 : 16;
+    y += compact ? (narrow ? 6 : 8) : 16;
 
     // GAME TYPE
     section("MODE");
@@ -4783,7 +4795,7 @@ function lerp(a, b, t){ return a + (b - a) * t; }
       { id:"mode_football", label:"FOOTBALL", onClick:()=>{ config.mode="FOOTBALL"; config.stage="CLASSIC"; buildSetupUI(); beep(620,0.04,"square",0.035); }, enabled:true, selected:(isFootballMode()) },
       { id:"mode_keepaway", label:"KEEP AWAY", onClick:()=>{ config.mode="KEEP_AWAY"; config.stage="CLASSIC"; buildSetupUI(); beep(600,0.04,"triangle",0.035); }, enabled:true, selected:(isKeepAwayMode()) }
     ], 3);
-    y += compact ? 1 : 4;
+    y += compact ? (narrow ? 0 : 1) : 4;
 
     // DIFFICULTY (single-player only)
     section("DIFFICULTY");
@@ -4792,7 +4804,7 @@ function lerp(a, b, t){ return a + (b - a) * t; }
       { id:"diff_norm", label:"NORMAL", onClick:()=>{ config.difficulty="NORMAL"; buildSetupUI(); beep(520,0.03,"triangle",0.03); }, enabled:isSinglePlayerMode(), selected:(isSinglePlayerMode() && config.difficulty==="NORMAL") },
       { id:"diff_hard", label:"HARD", onClick:()=>{ config.difficulty="HARD"; buildSetupUI(); beep(520,0.03,"triangle",0.03); }, enabled:isSinglePlayerMode(), selected:(isSinglePlayerMode() && config.difficulty==="HARD") }
     ]);
-    y += compact ? 1 : 4;
+    y += compact ? (narrow ? 0 : 1) : 4;
 
     // STAGE
     const stageEnabled = isKnockoutMode();
@@ -4808,7 +4820,7 @@ function lerp(a, b, t){ return a + (b - a) * t; }
       { id:"stage_doors", label:"DOORS", onClick:()=>{ if (!mapUnlocks.doors) return; config.stage="DOORS"; buildSetupUI(); beep(470,0.03,"square",0.03); }, enabled:(stageEnabled && mapUnlocks.doors), selected:(stageEnabled && config.stage==="DOORS") }
     ], 3);
 
-    y += compact ? 1 : 4;
+    y += compact ? (narrow ? 0 : 1) : 4;
     section("ROUND");
     row([
       { id:"ser_bo3", label:"3", onClick:()=>{ config.series="BO3"; buildSetupUI(); beep(480,0.03,"triangle",0.03); }, enabled:true, selected:(config.series==="BO3") },
@@ -4816,7 +4828,7 @@ function lerp(a, b, t){ return a + (b - a) * t; }
       { id:"ser_bo9", label:"9", onClick:()=>{ config.series="BO9"; buildSetupUI(); beep(480,0.03,"triangle",0.03); }, enabled:true, selected:(config.series==="BO9") }
     ]);
 
-    y += compact ? 1 : 4;
+    y += compact ? (narrow ? 0 : 1) : 4;
     section("MODIFIERS");
 
     // SPEED
@@ -4833,19 +4845,19 @@ function lerp(a, b, t){ return a + (b - a) * t; }
       { id:"mod_bouncy", label:"BOUNCY MODE", onClick:()=>{ config.modifier="BOUNCY"; buildSetupUI(); beep(560,0.03,"triangle",0.03); }, enabled:true, selected:(config.modifier==="BOUNCY") }
     ], 2);
 
-    y += compact ? 14 : 28;
-    const contentBottom = y + setupScrollY + 56;
+    y += compact ? (narrow ? 10 : 14) : 28;
+    const contentBottom = y + setupScrollY + (narrow ? 44 : 56);
     setupScrollMax = Math.max(0, contentBottom - (viewY + viewH));
     setupScrollY = clamp(setupScrollY, 0, setupScrollMax);
 
     // BACK / BEGIN (responsive width, no overlap on narrow viewports)
-    const footerGap = compact ? 10 : 14;
+    const footerGap = compact ? (narrow ? 8 : 10) : 14;
     const footerW = Math.min(viewW, 720);
     const footerX = Math.floor(viewX + (viewW - footerW) * 0.5);
     const bw2 = Math.floor((footerW - footerGap) / 2);
-    const bh2 = compact ? 46 : 58;
+    const bh2 = compact ? (narrow ? 42 : 46) : 58;
     const bx1 = footerX;
-    const by = py + panelH - bh2 - (compact ? 16 : 22);
+    const by = py + panelH - bh2 - (compact ? (narrow ? 12 : 16) : 22);
     addButton("setup_back", bx1, by, bw2, bh2, "BACK", () => { state = State.MENU; buildMenuUI(); beep(300,0.04,"square",0.03); });
     addButton("setup_begin", bx1 + bw2 + footerGap, by, bw2, bh2, "BEGIN", () => { startNewGame({ players: config.players, mode: config.mode, difficulty: config.difficulty, stage: config.stage, series: config.series, speed: config.speed, modifier: config.modifier }); beep(740,0.05,"triangle",0.04); });
   }
@@ -4937,25 +4949,26 @@ function lerp(a, b, t){ return a + (b - a) * t; }
 
 function buildPauseUI(){
     ui.pauseButtons = [];
-    const panelW = Math.min(560, Math.floor(W * 0.78));
-    const panelH = 412;
-    const bw = Math.min(360, Math.floor(panelW * 0.70));
-    const bh = 52;
+    const compact = isPhoneViewport() || isShortViewport();
+    const panelW = Math.min(560, Math.floor(W * (compact ? 0.88 : 0.78)));
+    const panelH = compact ? 320 : 412;
+    const bw = Math.min(compact ? 300 : 360, Math.floor(panelW * (compact ? 0.74 : 0.70)));
+    const bh = compact ? 42 : 52;
     const x = Math.floor(W/2 - bw/2);
     const py = Math.floor(H/2 - panelH/2);
-    let y = py + 120;
+    let y = py + (compact ? 88 : 120);
 
     const add = (id, yy, label, onClick) =>
       ui.pauseButtons.push({ id, x, y: yy, w: bw, h: bh, label, onClick, enabled: true });
 
-    add("pause_resume", y, "RESUME", () => resumeGame()); y += 62;
+    add("pause_resume", y, "RESUME", () => resumeGame()); y += compact ? 50 : 62;
     add("pause_restart_round", y, "RESTART ROUND", () => {
       if (state !== State.PAUSE) return;
       resetMatch();
       beep(360, 0.05, "square", 0.035);
       resumeGame();
-    }); y += 62;
-    add("pause_settings", y, "SETTINGS", () => { settingsBackState = State.PAUSE; helpBackState = null; state = State.SETTINGS; ui.buttons = []; buildSettingsUI(); }); y += 62;
+    }); y += compact ? 50 : 62;
+    add("pause_settings", y, "SETTINGS", () => { settingsBackState = State.PAUSE; helpBackState = null; state = State.SETTINGS; ui.buttons = []; buildSettingsUI(); }); y += compact ? 50 : 62;
     add("pause_menu", y, "MAIN MENU", () => { paused = false; settingsBackState = null; helpBackState = null; ui.pauseButtons = []; goTo(State.MENU); });
   }
 
@@ -6048,10 +6061,11 @@ for (let i = 0; i < all.length; i++){
     const p2Pal = getTeamPalette(2);
     const compact = isPhoneViewport() || isShortViewport();
     const phoneLandscape = isPhoneLandscapeViewport();
-    const bw = Math.floor(clamp(p.w * (phoneLandscape ? 0.64 : compact ? 0.70 : 0.62), compact ? 280 : 340, compact ? 520 : 620));
+    const portraitCompact = compact && !phoneLandscape;
+    const bw = Math.floor(clamp(p.w * (phoneLandscape ? 0.64 : portraitCompact ? 0.82 : compact ? 0.70 : 0.62), portraitCompact ? 240 : compact ? 280 : 340, portraitCompact ? Math.min(W - 24, 420) : compact ? 520 : 620));
     const bh = phoneLandscape ? 36 : compact ? 42 : 48;
     const bx = Math.floor(W/2 - bw/2);
-    const by = Math.floor(Math.max(phoneLandscape ? 30 : compact ? 48 : 66, p.y - bh - (phoneLandscape ? 8 : compact ? 12 : 20)));
+    const by = Math.floor(portraitCompact ? 6 : Math.max(phoneLandscape ? 30 : compact ? 48 : 66, p.y - bh - (phoneLandscape ? 8 : compact ? 12 : 20)));
     const lx = Math.floor(bx + bw * 0.22);
     const rx = Math.floor(bx + bw * 0.78);
     const cx = Math.floor(bx + bw * 0.50);
@@ -6422,13 +6436,14 @@ function drawTargetMarker(tx, ty, color, alpha=1, dirX=1, dirY=0){
 
     const compact = isPhoneViewport() || isShortViewport();
     const phoneLandscape = isPhoneLandscapeViewport();
+    const portraitCompact = compact && !phoneLandscape;
     const gap = compact ? 8 : 12;
     const totalW = Math.min(Math.floor(W * (compact ? 0.94 : 0.88)), Math.floor(game.platform.w * (compact ? 0.96 : 0.92)));
     const pauseW = clamp(Math.floor(totalW * (compact ? 0.20 : 0.22)), compact ? 74 : 110, compact ? 116 : 170);
     const bw = Math.floor((totalW - pauseW - gap*2) / 2);
-    const bh = phoneLandscape ? 30 : compact ? 36 : 44;
+    const bh = phoneLandscape ? 30 : portraitCompact ? 32 : compact ? 36 : 44;
     const x = Math.floor(W/2 - totalW/2);
-    const y = Math.floor(game.platform.y + game.platform.h + (phoneLandscape ? 4 : compact ? 12 : 22));
+    const y = Math.floor(game.platform.y + game.platform.h + (phoneLandscape ? 4 : portraitCompact ? 8 : compact ? 12 : 22));
 
     addButton("primary", x, y, bw, bh, "START", () => {
       if (isSinglePlayerMode()){
@@ -6548,22 +6563,23 @@ function drawTargetMarker(tx, ty, color, alpha=1, dirX=1, dirY=0){
     ctx.fillStyle = "rgba(0,0,0,0.88)";
     ctx.fillRect(0, 0, W, H);
 
-    const pw = Math.min(compact ? 760 : 760, Math.floor(W * (compact ? 0.92 : 0.90)));
-    const ph = clamp(Math.floor(H * (compact ? 0.62 : 0.56)), compact ? 360 : 330, compact ? 520 : 460);
+    const narrow = W <= 430;
+    const pw = Math.min(compact ? 760 : 760, Math.floor(W * (narrow ? 0.94 : compact ? 0.92 : 0.90)));
+    const ph = clamp(Math.floor(H * (narrow ? 0.58 : compact ? 0.62 : 0.56)), narrow ? 290 : compact ? 360 : 330, narrow ? 420 : compact ? 520 : 460);
     const px = Math.floor(W/2 - pw/2);
-    const py = Math.floor(H/2 - ph/2);
-    const innerPad = compact ? 22 : 34;
+    const py = Math.floor(clamp(H/2 - ph/2, 16, Math.max(16, H - ph - 16)));
+    const innerPad = narrow ? 18 : compact ? 22 : 34;
     const bodyX = px + innerPad;
     const bodyW = pw - innerPad * 2;
-    const titleFont = compact ? 27 : 32;
-    const subtitleFont = compact ? 13 : 15;
-    const bodyFont = compact ? 12 : 14;
-    const titleY = py + (compact ? 46 : 52);
-    const subtitleY = py + (compact ? 78 : 84);
-    const tipsTop = py + (compact ? 112 : 126);
-    const lineHeight = compact ? 20 : 22;
-    const tipGap = compact ? 9 : 12;
-    const ctaY = py + ph - (compact ? 28 : 34);
+    const titleFont = narrow ? 22 : compact ? 27 : 32;
+    const subtitleFont = narrow ? 12 : compact ? 13 : 15;
+    const bodyFont = narrow ? 11 : compact ? 12 : 14;
+    const titleY = py + (narrow ? 30 : compact ? 46 : 52);
+    const subtitleY = py + (narrow ? 54 : compact ? 78 : 84);
+    const tipsTop = py + (narrow ? 78 : compact ? 112 : 126);
+    const lineHeight = narrow ? 15 : compact ? 20 : 22;
+    const tipGap = narrow ? 4 : compact ? 9 : 12;
+    const ctaY = py + ph - (narrow ? 18 : compact ? 28 : 34);
     drawPanel(px, py, pw, ph);
 
     ctx.textAlign = "center";
@@ -7148,8 +7164,9 @@ function drawTargetMarker(tx, ty, color, alpha=1, dirX=1, dirY=0){
     ctx.restore();
 
     // bordered pause panel
-    const panelW = Math.min(560, Math.floor(W * 0.78));
-    const panelH = 412;
+    const compact = isPhoneViewport() || isShortViewport();
+    const panelW = Math.min(560, Math.floor(W * (compact ? 0.88 : 0.78)));
+    const panelH = compact ? 320 : 412;
     const px = Math.floor(W/2 - panelW/2);
     const py = Math.floor(H/2 - panelH/2);
 
@@ -7158,11 +7175,11 @@ function drawTargetMarker(tx, ty, color, alpha=1, dirX=1, dirY=0){
     ctx.save();
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.font = "800 44px ui-monospace, Menlo, Consolas, monospace";
+    ctx.font = compact ? "800 30px ui-monospace, Menlo, Consolas, monospace" : "800 44px ui-monospace, Menlo, Consolas, monospace";
     ctx.fillStyle = COL_NEON;
     ctx.shadowColor = "rgba(0,228,102,0.75)";
     ctx.shadowBlur = 18;
-    ctx.fillText("PAUSED", W/2, py + 64);
+    ctx.fillText("PAUSED", W/2, py + (compact ? 46 : 64));
     ctx.restore();
 
     if (!ui.buttons || ui.buttons.length === 0) buildPauseUI();
